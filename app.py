@@ -78,11 +78,22 @@ def get_indicator_status(name, value, thresholds):
     
     elif name == "Coinbase Rank":
         # For Coinbase ranking, interpret based on app store rank
-        if value <= 10:  # Top 10 in App Store
-            return "Market Euphoria", "red"
-        elif value <= 50:
-            return "Growing Interest", "yellow"
-        else:
+        # Handle "200+" string format
+        if isinstance(value, str) and "+" in value:
+            # If rank is "200+" or similar, it's outside the top 200
+            return "Normal Interest", "green"
+        
+        # Convert to numeric if needed
+        try:
+            numeric_value = float(value) if isinstance(value, str) else value
+            if numeric_value <= 10:  # Top 10 in App Store
+                return "Market Euphoria", "red"
+            elif numeric_value <= 50:
+                return "Growing Interest", "yellow"
+            else:
+                return "Normal Interest", "green"
+        except (ValueError, TypeError):
+            # If conversion fails, assume a high rank (low interest)
             return "Normal Interest", "green"
     
     elif name == "CBBI Score":
@@ -161,9 +172,16 @@ if page == "Dashboard Overview":
             rank = data['coinbase_rank'].get('rank')
             status, color = get_indicator_status("Coinbase Rank", rank, [5, 50])
             
+            # Format the rank display properly (handling string values like "200+")
+            if isinstance(rank, str) and "+" in rank:
+                # Already formatted with + sign
+                display_rank = f"#{rank}"
+            else:
+                display_rank = f"#{rank}" if rank else "N/A"
+                
             st.metric(
                 label="App Store Rank", 
-                value=f"#{rank}" if rank else "N/A"
+                value=display_rank
             )
             st.markdown(f"<h3 style='color:{color}'>{status}</h3>", unsafe_allow_html=True)
         else:
@@ -583,9 +601,16 @@ elif page == "Coinbase App Ranking":
         
         col1, col2 = st.columns(2)
         with col1:
+            # Format the rank display properly (handling string values like "200+")
+            if isinstance(rank, str) and "+" in rank:
+                # Already formatted with + sign
+                display_rank = f"#{rank}"
+            else:
+                display_rank = f"#{rank}" if rank else "N/A"
+                
             st.metric(
                 label="Current App Store Rank", 
-                value=f"#{rank}" if rank else "N/A"
+                value=display_rank
             )
             st.markdown(f"<h3 style='color:{color}'>{status}</h3>", unsafe_allow_html=True)
         

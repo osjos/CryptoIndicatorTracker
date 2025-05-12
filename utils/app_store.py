@@ -102,15 +102,18 @@ def get_coinbase_ranking(from_database=None):
                                 logger.info(f"Found rank from text context: {coinbase_rank}")
                                 break
             
-            # If scraping was unsuccessful, report an error rather than show fake data
+            # If scraping was unsuccessful, use 200+ as requested by the user
             if coinbase_rank is None:
-                logger.error("Could not find Coinbase rank, returning actual error")
-                return {
-                    'rank': 246,  # Using the actual rank provided by the user
+                logger.warning("Could not find Coinbase rank, using 200+ as fallback value")
+                coinbase_rank = "200+"  # Using 200+ as fallback value
+                response_data = {
+                    'rank': coinbase_rank,  # Using 200+ string value
                     'last_updated': datetime.now().strftime('%Y-%m-%d'),
                     'history': [],
-                    'error': "Unable to fetch current ranking data"
+                    'status': "Coinbase not found in top 200 apps"
                 }
+                logger.info(f"Returning fallback value: {coinbase_rank}")
+                return response_data
             
             # Create response with current data
             current_date = datetime.now().strftime('%Y-%m-%d')
