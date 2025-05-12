@@ -292,7 +292,7 @@ elif page == "MAG7 vs Bitcoin":
             )
         
         with col2:
-            ma100 = data['mag7_btc'].get('ma100')
+            ma100 = data['mag7_btc'].get('current_ma100')
             st.metric(
                 label="100-day MA", 
                 value=f"{ma100:.2f}" if ma100 else "N/A",
@@ -300,7 +300,7 @@ elif page == "MAG7 vs Bitcoin":
             )
         
         with col3:
-            ma200 = data['mag7_btc'].get('ma200')
+            ma200 = data['mag7_btc'].get('current_ma200')
             st.metric(
                 label="200-day MA", 
                 value=f"{ma200:.2f}" if ma200 else "N/A",

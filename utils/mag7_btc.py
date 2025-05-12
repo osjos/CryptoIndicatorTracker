@@ -99,8 +99,8 @@ def get_mag7_btc_data(from_database=None):
             'ema150': index_data['EMA150'].tolist() if hasattr(index_data['EMA150'], 'tolist') else list(index_data['EMA150']),
             'ema100': index_data['EMA100'].tolist() if hasattr(index_data['EMA100'], 'tolist') else list(index_data['EMA100']),
             'current_value': index_data['Smoothed_Index'].iloc[-1] if len(index_data['Smoothed_Index']) > 0 else None,
-            'ma100': index_data['MA100'].iloc[-1] if len(index_data['MA100']) > 0 else None,
-            'ma200': index_data['MA200'].iloc[-1] if len(index_data['MA200']) > 0 else None
+            'current_ma100': index_data['MA100'].iloc[-1] if len(index_data['MA100']) > 0 else None,
+            'current_ma200': index_data['MA200'].iloc[-1] if len(index_data['MA200']) > 0 else None
         }
         
         # Add known BTC tops/bottoms
