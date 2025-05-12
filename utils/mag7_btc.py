@@ -95,6 +95,7 @@ def get_mag7_btc_data(from_database=None):
             'ema200': index_data['EMA200'].tolist() if hasattr(index_data['EMA200'], 'tolist') else list(index_data['EMA200']),
             'ema150': index_data['EMA150'].tolist() if hasattr(index_data['EMA150'], 'tolist') else list(index_data['EMA150']),
             'current_value': index_data['Smoothed_Index'].iloc[-1] if len(index_data['Smoothed_Index']) > 0 else None,
+            'current_ma150': index_data['MA150'].iloc[-1] if len(index_data['MA150']) > 0 else None,
             'current_ma200': index_data['MA200'].iloc[-1] if len(index_data['MA200']) > 0 else None
         }
         

@@ -53,14 +53,14 @@ def get_indicator_status(name, value, thresholds):
     
     if name == "MAG7 vs BTC":
         # For MAG7-BTC index, interpret based on moving averages
-        ma100 = thresholds[0]
+        ma150 = thresholds[0]
         ma200 = thresholds[1]
         
         # Check if we have valid MA values
-        if ma100 is None or ma200 is None:
+        if ma150 is None or ma200 is None:
             return "Unknown", "gray"
             
-        if value > ma100:  # Above 100-day MA
+        if value > ma150:  # Above 150-day MA
             return "Bullish", "green"
         elif value < ma200:  # Below 200-day MA
             return "Bearish", "red"
@@ -137,14 +137,14 @@ if page == "Dashboard Overview":
         st.subheader("MAG7 vs Bitcoin")
         if 'mag7_btc' in data and data['mag7_btc'] is not None:
             current_value = data['mag7_btc'].get('current_value')
-            ma100 = data['mag7_btc'].get('current_ma100')
+            ma150 = data['mag7_btc'].get('current_ma150')
             ma200 = data['mag7_btc'].get('current_ma200')
-            status, color = get_indicator_status("MAG7 vs BTC", current_value, [ma100, ma200])
+            status, color = get_indicator_status("MAG7 vs BTC", current_value, [ma150, ma200])
             
             st.metric(
                 label="Index Value", 
                 value=f"{current_value:.2f}" if current_value else "N/A",
-                delta=f"{(current_value - ma100):.2f}" if current_value is not None and ma100 is not None else None
+                delta=f"{(current_value - ma150):.2f}" if current_value is not None and ma150 is not None else None
             )
             st.markdown(f"<h3 style='color:{color}'>{status}</h3>", unsafe_allow_html=True)
         else:
@@ -408,12 +408,12 @@ elif page == "MAG7 vs Bitcoin":
         
         # Analysis
         st.subheader("Current Analysis")
-        if current_value > ma100 and current_value > ma200:
-            st.success("✅ The index is above both the 100-day and 200-day moving averages, indicating a bullish trend.")
-        elif current_value < ma100 and current_value < ma200:
-            st.error("⚠️ The index is below both the 100-day and 200-day moving averages, indicating a bearish trend.")
+        if current_value > ma150 and current_value > ma200:
+            st.success("✅ The index is above both the 150-day and 200-day moving averages, indicating a bullish trend.")
+        elif current_value < ma150 and current_value < ma200:
+            st.error("⚠️ The index is below both the 150-day and 200-day moving averages, indicating a bearish trend.")
         else:
-            st.warning("🔍 The index is between the 100-day and 200-day moving averages, indicating a mixed or transitioning market.")
+            st.warning("🔍 The index is between the 150-day and 200-day moving averages, indicating a mixed or transitioning market.")
     else:
         st.warning("MAG7-BTC data not available. Please update the data.")
 
