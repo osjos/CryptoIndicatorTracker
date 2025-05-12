@@ -161,29 +161,63 @@ def calculate_approximate_cbbi():
         btc_data['MA350'] = btc_data['Close'].rolling(window=350).mean()
         btc_data['MA350x2'] = btc_data['MA350'] * 2
         btc_data['Pi_Ratio'] = btc_data['MA111'] / btc_data['MA350x2']
-        pi_cycle_score = min(1.0, btc_data['Pi_Ratio'].iloc[-1])
+        # Handle Series ambiguity by explicitly checking if we have valid data
+        if not btc_data['Pi_Ratio'].empty and not pd.isna(btc_data['Pi_Ratio'].iloc[-1]):
+            pi_cycle_score = min(1.0, float(btc_data['Pi_Ratio'].iloc[-1]))
+        else:
+            pi_cycle_score = 0.5  # Default mid-range value
         
         # 2-Year MA Multiplier
         btc_data['MA730'] = btc_data['Close'].rolling(window=730).mean()
-        current_multiple = btc_data['Close'].iloc[-1] / btc_data['MA730'].iloc[-1]
-        # Normalize between 0 and 1 (5x multiple is close to 1.0)
-        ma_multiplier_score = min(1.0, max(0.0, (current_multiple - 1) / 4))
+        # Handle potential division by zero or NaN values
+        if not btc_data.empty and not pd.isna(btc_data['MA730'].iloc[-1]) and btc_data['MA730'].iloc[-1] > 0:
+            current_multiple = btc_data['Close'].iloc[-1] / btc_data['MA730'].iloc[-1]
+            # Normalize between 0 and 1 (5x multiple is close to 1.0)
+            ma_multiplier_score = min(1.0, max(0.0, (current_multiple - 1) / 4))
+        else:
+            ma_multiplier_score = 0.5  # Default mid-range value
         
         # Price vs 20 Week & 21 Week EMA
         btc_data['EMA20W'] = btc_data['Close'].ewm(span=140).mean()  # 20 weeks ≈ 140 days
         btc_data['EMA21W'] = btc_data['Close'].ewm(span=147).mean()  # 21 weeks ≈ 147 days
-        ema_ratio = btc_data['Close'].iloc[-1] / ((btc_data['EMA20W'].iloc[-1] + btc_data['EMA21W'].iloc[-1]) / 2)
-        # Normalize between 0 and 1 (2x multiple is close to 1.0)
-        ema_score = min(1.0, max(0.0, (ema_ratio - 1) / 1))
+        
+        # Handle potential division by zero or NaN values
+        if (not btc_data.empty and 
+            not pd.isna(btc_data['EMA20W'].iloc[-1]) and 
+            not pd.isna(btc_data['EMA21W'].iloc[-1]) and
+            (btc_data['EMA20W'].iloc[-1] + btc_data['EMA21W'].iloc[-1]) > 0):
+            
+            ema_avg = (btc_data['EMA20W'].iloc[-1] + btc_data['EMA21W'].iloc[-1]) / 2
+            ema_ratio = btc_data['Close'].iloc[-1] / ema_avg
+            # Normalize between 0 and 1 (2x multiple is close to 1.0)
+            ema_score = min(1.0, max(0.0, (ema_ratio - 1) / 1))
+        else:
+            ema_score = 0.5  # Default mid-range value
         
         # Simplistic logarithmic regression
-        btc_data['LogPrice'] = np.log10(btc_data['Close'])
-        days = np.arange(len(btc_data))
-        coeffs = np.polyfit(days, btc_data['LogPrice'], 1)
-        log_trend = 10 ** (coeffs[0] * days + coeffs[1])
-        current_deviation = btc_data['Close'].iloc[-1] / log_trend[-1]
-        # Normalize between 0 and 1 (3x deviation is close to 1.0)
-        log_reg_score = min(1.0, max(0.0, (current_deviation - 1) / 2))
+        log_reg_score = 0.5  # Default value
+        
+        if not btc_data.empty and len(btc_data) > 2:  # Need at least 2 points for a line
+            try:
+                btc_data['LogPrice'] = np.log10(btc_data['Close'])
+                days = np.arange(len(btc_data))
+                
+                # Remove NaN values before fitting
+                valid_idx = ~pd.isna(btc_data['LogPrice'])
+                if sum(valid_idx) > 2:  # At least 2 valid points needed
+                    valid_days = days[valid_idx]
+                    valid_log_prices = btc_data['LogPrice'][valid_idx]
+                    
+                    coeffs = np.polyfit(valid_days, valid_log_prices, 1)
+                    log_trend = 10 ** (coeffs[0] * days + coeffs[1])
+                    
+                    if not pd.isna(log_trend[-1]) and log_trend[-1] > 0:
+                        current_deviation = btc_data['Close'].iloc[-1] / log_trend[-1]
+                        # Normalize between 0 and 1 (3x deviation is close to 1.0)
+                        log_reg_score = min(1.0, max(0.0, (current_deviation - 1) / 2))
+            except Exception as e:
+                logger.warning(f"Error in log regression calculation: {e}")
+                # Keep the default value
         
         # Average the available indicators for an approximate CBBI score
         # The original CBBI uses more indicators and a more complex methodology

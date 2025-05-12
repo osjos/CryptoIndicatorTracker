@@ -36,8 +36,13 @@ def get_mag7_btc_data(from_database=None):
         # Define ticker symbols
         tickers = ['BTC-USD', 'MSFT', 'AAPL', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA']
         
-        # Fetch data
-        data = yf.download(tickers, start=start_date, end=end_date)['Adj Close']
+        # Fetch data - handle potential change in column naming in yfinance
+        data = yf.download(tickers, start=start_date, end=end_date)
+        if 'Adj Close' in data:
+            data = data['Adj Close']
+        else:
+            # If Adj Close not available, try Close
+            data = data['Close']
         
         # Handle any missing data
         data.dropna(how='all', inplace=True)
