@@ -625,7 +625,16 @@ elif page == "Coinbase App Ranking":
         if 'history' in data['coinbase_rank'] and data['coinbase_rank']['history']:
             history = data['coinbase_rank']['history']
             dates = [item['date'] for item in history]
-            ranks = [item['rank'] for item in history]
+            
+            # Handle possible string ranks like "200+"
+            ranks = []
+            for item in history:
+                rank_value = item['rank']
+                if isinstance(rank_value, str) and "+" in rank_value:
+                    # Convert "200+" to numeric 200 for charting
+                    ranks.append(float(rank_value.replace("+", "")))
+                else:
+                    ranks.append(rank_value)
             
             fig = go.Figure()
             
@@ -665,12 +674,23 @@ elif page == "Coinbase App Ranking":
             
             # Analysis
             st.subheader("Current Analysis")
-            if rank <= 10:
-                st.error("⚠️ Coinbase is in the top 10 apps, which historically has coincided with market tops. This suggests extreme retail interest.")
-            elif rank <= 50:
-                st.warning("🔍 Coinbase ranking shows elevated retail interest. Monitor closely as it might signal increasing market euphoria.")
+            
+            # Check if rank is a string with "+" (like "200+")
+            if isinstance(rank, str) and "+" in rank:
+                st.success("✅ Coinbase app ranking is outside the top charts (200+), suggesting no excessive retail interest or market euphoria.")
             else:
-                st.success("✅ Coinbase app ranking is at a normal level, suggesting no excessive retail interest or market euphoria.")
+                # Convert to numeric for comparison if it's a string number
+                try:
+                    numeric_rank = float(rank) if isinstance(rank, str) else rank
+                    if numeric_rank <= 10:
+                        st.error("⚠️ Coinbase is in the top 10 apps, which historically has coincided with market tops. This suggests extreme retail interest.")
+                    elif numeric_rank <= 50:
+                        st.warning("🔍 Coinbase ranking shows elevated retail interest. Monitor closely as it might signal increasing market euphoria.")
+                    else:
+                        st.success("✅ Coinbase app ranking is at a normal level, suggesting no excessive retail interest or market euphoria.")
+                except (ValueError, TypeError):
+                    # If conversion fails, assume it's a high rank
+                    st.success("✅ Coinbase app ranking appears to be at a normal level, suggesting no excessive retail interest or market euphoria.")
         else:
             st.warning("Historical ranking data not available.")
     else:
