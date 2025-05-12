@@ -315,7 +315,8 @@ elif page == "MAG7 vs Bitcoin":
             x=data['mag7_btc']['dates'],
             y=data['mag7_btc']['index_values'],
             name="BTC-MAG7 Index",
-            line=dict(color='blue', width=2)
+            line=dict(color='blue', width=2),
+            mode='lines'  # Ensure we're using line mode only
         ))
         
         # Add the MAs
@@ -323,14 +324,16 @@ elif page == "MAG7 vs Bitcoin":
             x=data['mag7_btc']['dates'],
             y=data['mag7_btc']['ma100'],
             name="MA100",
-            line=dict(color='orange', width=1.5)
+            line=dict(color='orange', width=1.5),
+            mode='lines'
         ))
         
         fig.add_trace(go.Scatter(
             x=data['mag7_btc']['dates'],
             y=data['mag7_btc']['ma200'],
             name="MA200",
-            line=dict(color='red', width=1.5)
+            line=dict(color='red', width=1.5),
+            mode='lines'
         ))
         
         # Add EMAs
@@ -338,14 +341,16 @@ elif page == "MAG7 vs Bitcoin":
             x=data['mag7_btc']['dates'],
             y=data['mag7_btc']['ema100'],
             name="EMA100",
-            line=dict(color='purple', width=1.5, dash='dot')
+            line=dict(color='purple', width=1.5, dash='dot'),
+            mode='lines'
         ))
         
         fig.add_trace(go.Scatter(
             x=data['mag7_btc']['dates'],
             y=data['mag7_btc']['ema200'],
             name="EMA200",
-            line=dict(color='green', width=1.5, dash='dot')
+            line=dict(color='green', width=1.5, dash='dot'),
+            mode='lines'
         ))
         
         # Add cycle tops and bottoms if available
@@ -571,9 +576,11 @@ elif page == "Coinbase App Ranking":
     When many new users rush to download crypto trading apps, it often signals peak retail interest.
     """)
     
-    # Featured image
-    st.image("https://pixabay.com/get/g4353fc458b9f91b3d87fe43d4225168134f3b37d880be264ffd54e7847c34451ca4ae8e5f20759a95afa5ba123dd1c26e2d6dc7c668c42d85f8da35ff93a5c42_1280.jpg", 
-             caption="App Store Rankings Analysis")
+    # Additional context
+    st.markdown("""
+    Note: This indicator specifically tracks the Coinbase app position in the free iPhone apps 
+    ranking in the US App Store. Rankings are updated daily.
+    """)
     
     # Get Coinbase Ranking data
     if 'coinbase_rank' in data and data['coinbase_rank'] is not None:
@@ -663,9 +670,13 @@ elif page == "CBBI Score":
     Values closer to 1 suggest market euphoria and potential tops, while values closer to 0 suggest bear markets and accumulation opportunities.
     """)
     
-    # Featured image
-    st.image("https://pixabay.com/get/gbc8cf7a7e699b9881042c4059e00857ba0e38b08bbee12c0eacaff45a07c8aa8860e7210a058d63a452b0b920356c988a34b86a12e357e0eb16b57f172e96fee_1280.jpg", 
-             caption="Bitcoin Market Analysis")
+    # Technical details
+    st.markdown("""
+    CBBI score ranges from 0 to 1:
+    - Score > 0.8: Potential market top, consider reducing exposure
+    - Score 0.6-0.8: Caution zone, monitor closely
+    - Score < 0.6: Accumulation phase, favorable for long-term entry
+    """)
     
     # Get CBBI data
     if 'cbbi' in data and data['cbbi'] is not None:
@@ -812,9 +823,12 @@ elif page == "Halving Cycle":
     This tracker monitors the days since the most recent halving and projects the potential timeframe for a market cycle top.
     """)
     
-    # Featured image
-    st.image("https://pixabay.com/get/gd0fa582811599386415518624bbf71207e844c299b3c03a26f76ae79eeb473fe18bfa654b45cf9578f33c57df1ff1489bfe0c5aea6a388548fd715cc40f8e695_1280.jpg", 
-             caption="Bitcoin Halving Cycle Analysis")
+    # Technical details
+    st.markdown("""
+    This indicator measures the progression through the ~520-day period after halving.
+    Each halving creates a similar price movement pattern, with potential market tops typically 
+    occurring 12-18 months (360-540 days) after each halving event.
+    """)
     
     # Get Halving Cycle data
     if 'halving' in data and data['halving'] is not None:
