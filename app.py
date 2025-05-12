@@ -274,9 +274,11 @@ elif page == "MAG7 vs Bitcoin":
     The index is weighted with 50% Bitcoin and 50% distributed among the MAG7 stocks.
     """)
     
-    # Featured image
-    st.image("https://pixabay.com/get/g94c7100e38b54bb089fc250a0999dfdabf3bae9a1f2e79683b4508b271270f64e4d296787c3224726c7b212adfa97b608fd3093a870baf02a34e0ae7f79628b8_1280.jpg", 
-             caption="Cryptocurrency and Tech Stock Analysis")
+    # Description
+    st.markdown("""
+    This page shows the relationship between Bitcoin and major tech stocks (MAG7).
+    The index is weighted with 50% Bitcoin and 50% distributed among the MAG7 stocks.
+    """)
     
     # Get MAG7 vs BTC data
     if 'mag7_btc' in data and data['mag7_btc'] is not None:
@@ -412,8 +414,11 @@ elif page == "Pi Cycle":
     """)
     
     # Featured image
-    st.image("https://pixabay.com/get/g39086716ba050b49136f9fd6c3efe91fba01cbffe7cd13375a55a8b6717917d72077dd224eccc1d9dff81f70390cf9fc44b66d33732d67a1423fe206fcc78ddc_1280.jpg", 
-             caption="Bitcoin Cycle Analysis")
+    # Additional description
+    st.markdown("""
+    When the 111-day MA crosses above the 350-day MA × 2, it has historically signaled market tops.
+    This indicator has been reliable across multiple Bitcoin cycles.
+    """)
     
     # Get Pi Cycle data
     if 'pi_cycle' in data and data['pi_cycle'] is not None:
