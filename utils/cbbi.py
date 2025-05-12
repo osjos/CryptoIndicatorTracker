@@ -156,68 +156,98 @@ def calculate_approximate_cbbi():
         
         # Let's calculate a few of these as an approximation
         
-        # Pi Cycle Top
-        btc_data['MA111'] = btc_data['Close'].rolling(window=111).mean()
-        btc_data['MA350'] = btc_data['Close'].rolling(window=350).mean()
-        btc_data['MA350x2'] = btc_data['MA350'] * 2
-        btc_data['Pi_Ratio'] = btc_data['MA111'] / btc_data['MA350x2']
-        # Handle Series ambiguity by explicitly checking if we have valid data
-        if not btc_data['Pi_Ratio'].empty and not pd.isna(btc_data['Pi_Ratio'].iloc[-1]):
-            pi_cycle_score = min(1.0, float(btc_data['Pi_Ratio'].iloc[-1]))
-        else:
-            pi_cycle_score = 0.5  # Default mid-range value
+        # Set default scores in case calculations fail
+        pi_cycle_score = 0.5
+        ma_multiplier_score = 0.5
+        ema_score = 0.5
+        log_reg_score = 0.5
         
-        # 2-Year MA Multiplier
-        btc_data['MA730'] = btc_data['Close'].rolling(window=730).mean()
-        # Handle potential division by zero or NaN values
-        if not btc_data.empty and not pd.isna(btc_data['MA730'].iloc[-1]) and btc_data['MA730'].iloc[-1] > 0:
-            current_multiple = btc_data['Close'].iloc[-1] / btc_data['MA730'].iloc[-1]
-            # Normalize between 0 and 1 (5x multiple is close to 1.0)
-            ma_multiplier_score = min(1.0, max(0.0, (current_multiple - 1) / 4))
-        else:
-            ma_multiplier_score = 0.5  # Default mid-range value
+        # Calculate individual components with error handling for each
+        try:
+            # Pi Cycle Top - needs 350 days of data
+            if len(btc_data) >= 350:
+                btc_data['MA111'] = btc_data['Close'].rolling(window=111).mean()
+                btc_data['MA350'] = btc_data['Close'].rolling(window=350).mean()
+                btc_data['MA350x2'] = btc_data['MA350'] * 2
+                
+                # Check if we have valid values at the end of the dataframe
+                last_ma111 = btc_data['MA111'].iloc[-1]
+                last_ma350x2 = btc_data['MA350x2'].iloc[-1]
+                
+                if pd.notna(last_ma111) and pd.notna(last_ma350x2) and last_ma350x2 > 0:
+                    pi_ratio = last_ma111 / last_ma350x2
+                    # Normalize between 0 and 1 (1 is when MA111 = MA350x2)
+                    pi_cycle_score = min(1.0, max(0.0, pi_ratio))
+            else:
+                logger.warning("Not enough data for Pi Cycle calculation")
+        except Exception as e:
+            logger.warning(f"Error in Pi Cycle calculation: {e}")
         
-        # Price vs 20 Week & 21 Week EMA
-        btc_data['EMA20W'] = btc_data['Close'].ewm(span=140).mean()  # 20 weeks ≈ 140 days
-        btc_data['EMA21W'] = btc_data['Close'].ewm(span=147).mean()  # 21 weeks ≈ 147 days
+        try:
+            # 2-Year MA Multiplier - needs 730 days of data
+            if len(btc_data) >= 730:
+                btc_data['MA730'] = btc_data['Close'].rolling(window=730).mean()
+                
+                last_close = btc_data['Close'].iloc[-1]
+                last_ma730 = btc_data['MA730'].iloc[-1]
+                
+                if pd.notna(last_close) and pd.notna(last_ma730) and last_ma730 > 0:
+                    current_multiple = last_close / last_ma730
+                    # Normalize between 0 and 1 (5x multiple is close to 1.0)
+                    ma_multiplier_score = min(1.0, max(0.0, (current_multiple - 1) / 4))
+            else:
+                logger.warning("Not enough data for 2-Year MA Multiplier calculation")
+        except Exception as e:
+            logger.warning(f"Error in MA Multiplier calculation: {e}")
         
-        # Handle potential division by zero or NaN values
-        if (not btc_data.empty and 
-            not pd.isna(btc_data['EMA20W'].iloc[-1]) and 
-            not pd.isna(btc_data['EMA21W'].iloc[-1]) and
-            (btc_data['EMA20W'].iloc[-1] + btc_data['EMA21W'].iloc[-1]) > 0):
-            
-            ema_avg = (btc_data['EMA20W'].iloc[-1] + btc_data['EMA21W'].iloc[-1]) / 2
-            ema_ratio = btc_data['Close'].iloc[-1] / ema_avg
-            # Normalize between 0 and 1 (2x multiple is close to 1.0)
-            ema_score = min(1.0, max(0.0, (ema_ratio - 1) / 1))
-        else:
-            ema_score = 0.5  # Default mid-range value
+        try:
+            # Price vs 20 Week & 21 Week EMA - needs at least 150 days
+            if len(btc_data) >= 150:
+                btc_data['EMA20W'] = btc_data['Close'].ewm(span=140).mean()  # 20 weeks ≈ 140 days
+                btc_data['EMA21W'] = btc_data['Close'].ewm(span=147).mean()  # 21 weeks ≈ 147 days
+                
+                last_close = btc_data['Close'].iloc[-1]
+                last_ema20w = btc_data['EMA20W'].iloc[-1]
+                last_ema21w = btc_data['EMA21W'].iloc[-1]
+                
+                if (pd.notna(last_close) and pd.notna(last_ema20w) and 
+                    pd.notna(last_ema21w) and (last_ema20w + last_ema21w) > 0):
+                    
+                    ema_avg = (last_ema20w + last_ema21w) / 2
+                    ema_ratio = last_close / ema_avg
+                    # Normalize between 0 and 1 (2x multiple is close to 1.0)
+                    ema_score = min(1.0, max(0.0, (ema_ratio - 1) / 1))
+            else:
+                logger.warning("Not enough data for EMA calculation")
+        except Exception as e:
+            logger.warning(f"Error in EMA calculation: {e}")
         
-        # Simplistic logarithmic regression
-        log_reg_score = 0.5  # Default value
-        
-        if not btc_data.empty and len(btc_data) > 2:  # Need at least 2 points for a line
-            try:
-                btc_data['LogPrice'] = np.log10(btc_data['Close'])
+        try:
+            # Simplistic logarithmic regression - needs sufficient data points
+            if len(btc_data) > 60:  # At least 60 days of data
+                # Calculate log prices, avoiding NaN/Inf from non-positive values
+                btc_data['LogPrice'] = np.log10(btc_data['Close'].replace(0, np.nan))
                 days = np.arange(len(btc_data))
                 
-                # Remove NaN values before fitting
-                valid_idx = ~pd.isna(btc_data['LogPrice'])
-                if sum(valid_idx) > 2:  # At least 2 valid points needed
-                    valid_days = days[valid_idx]
-                    valid_log_prices = btc_data['LogPrice'][valid_idx]
-                    
+                # Create valid mask, convert to numpy to avoid Series truth value ambiguity
+                mask = ~np.isnan(btc_data['LogPrice'].values)
+                valid_days = days[mask]
+                valid_log_prices = btc_data['LogPrice'].values[mask]
+                
+                if len(valid_days) > 30:  # Ensure enough valid points
                     coeffs = np.polyfit(valid_days, valid_log_prices, 1)
-                    log_trend = 10 ** (coeffs[0] * days + coeffs[1])
+                    log_trend = 10 ** (coeffs[0] * days[-1] + coeffs[1])
                     
-                    if not pd.isna(log_trend[-1]) and log_trend[-1] > 0:
-                        current_deviation = btc_data['Close'].iloc[-1] / log_trend[-1]
+                    last_close = btc_data['Close'].iloc[-1]
+                    
+                    if pd.notna(last_close) and pd.notna(log_trend) and log_trend > 0:
+                        current_deviation = last_close / log_trend
                         # Normalize between 0 and 1 (3x deviation is close to 1.0)
                         log_reg_score = min(1.0, max(0.0, (current_deviation - 1) / 2))
-            except Exception as e:
-                logger.warning(f"Error in log regression calculation: {e}")
-                # Keep the default value
+            else:
+                logger.warning("Not enough data for logarithmic regression")
+        except Exception as e:
+            logger.warning(f"Error in log regression calculation: {e}")
         
         # Average the available indicators for an approximate CBBI score
         # The original CBBI uses more indicators and a more complex methodology

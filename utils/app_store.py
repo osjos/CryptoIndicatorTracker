@@ -31,31 +31,60 @@ def get_coinbase_ranking(from_database=None):
         
         logger.info("Fetching Coinbase app ranking from App Store")
         
-        # Use AppFigures for app ranking data
-        # This is a simulated request - would need actual API implementation
-        url = "https://appfigures.com/top-apps/ios-app-store/united-states/iphone/top-overall"
+        # Use AppFigures for app ranking data - specifically the free iPhone apps in the US
+        url = "https://appfigures.com/top-apps/ios-app-store/united-states/iphone/top-free"
         
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
         
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=10)
         
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            # This is a simplified implementation - actual scraping would need to match the website structure
             # Look for Coinbase in the app listings
             coinbase_rank = None
             
-            # Extract app listings
-            app_listings = soup.find_all('div', {'class': 'app-row'})  # This class name is hypothetical
+            # Use trafilatura to extract text content
+            try:
+                import trafilatura
+                downloaded = trafilatura.fetch_url(url)
+                content = trafilatura.extract(downloaded)
+                
+                # Check if "Coinbase" appears in the text
+                if content and "Coinbase" in content:
+                    # Try to identify the position/ranking
+                    lines = content.split('\n')
+                    for i, line in enumerate(lines):
+                        if "Coinbase" in line:
+                            # Look for nearby numbers that could indicate rank
+                            for j in range(max(0, i-5), min(len(lines), i+5)):
+                                if lines[j].strip().isdigit():
+                                    coinbase_rank = int(lines[j].strip())
+                                    break
+                            # If we found something that looks like a rank, break
+                            if coinbase_rank:
+                                break
+            except ImportError:
+                logger.warning("Trafilatura not available, falling back to BeautifulSoup parsing")
             
-            for i, app in enumerate(app_listings):
-                app_name = app.find('div', {'class': 'app-name'})  # This class name is hypothetical
-                if app_name and 'coinbase' in app_name.text.lower():
-                    coinbase_rank = i + 1
-                    break
+            # Use BeautifulSoup as fallback
+            if not coinbase_rank:
+                # Extract app listings - try a few common patterns
+                app_elements = soup.find_all(['div', 'li', 'tr'], class_=lambda c: c and ('app' in c.lower() or 'row' in c.lower() or 'item' in c.lower()))
+                
+                for i, app in enumerate(app_elements):
+                    # Get all text in this element
+                    text = app.get_text().lower()
+                    if 'coinbase' in text:
+                        # Found Coinbase - try to determine its rank
+                        coinbase_rank = i + 1
+                        # Look for explicit rank indicators
+                        rank_element = app.find(['span', 'div'], class_=lambda c: c and ('rank' in c.lower() or 'position' in c.lower() or 'number' in c.lower()))
+                        if rank_element and rank_element.text.strip().isdigit():
+                            coinbase_rank = int(rank_element.text.strip())
+                        break
             
             # If scraping was unsuccessful, use historical data or simulate for testing
             if coinbase_rank is None:
