@@ -53,9 +53,16 @@ def get_indicator_status(name, value, thresholds):
     
     if name == "MAG7 vs BTC":
         # For MAG7-BTC index, interpret based on moving averages
-        if value > thresholds[0]:  # Above top MA
+        ma100 = thresholds[0]
+        ma200 = thresholds[1]
+        
+        # Check if we have valid MA values
+        if ma100 is None or ma200 is None:
+            return "Unknown", "gray"
+            
+        if value > ma100:  # Above 100-day MA
             return "Bullish", "green"
-        elif value < thresholds[1]:  # Below bottom MA
+        elif value < ma200:  # Below 200-day MA
             return "Bearish", "red"
         else:
             return "Neutral", "yellow"
@@ -119,14 +126,14 @@ if page == "Dashboard Overview":
         st.subheader("MAG7 vs Bitcoin")
         if 'mag7_btc' in data and data['mag7_btc'] is not None:
             current_value = data['mag7_btc'].get('current_value')
-            ma100 = data['mag7_btc'].get('ma100')
-            ma200 = data['mag7_btc'].get('ma200')
+            ma100 = data['mag7_btc'].get('current_ma100')
+            ma200 = data['mag7_btc'].get('current_ma200')
             status, color = get_indicator_status("MAG7 vs BTC", current_value, [ma100, ma200])
             
             st.metric(
                 label="Index Value", 
                 value=f"{current_value:.2f}" if current_value else "N/A",
-                delta=f"{(current_value - ma100):.2f}" if current_value and ma100 else None
+                delta=f"{(current_value - ma100):.2f}" if current_value is not None and ma100 is not None else None
             )
             st.markdown(f"<h3 style='color:{color}'>{status}</h3>", unsafe_allow_html=True)
         else:
