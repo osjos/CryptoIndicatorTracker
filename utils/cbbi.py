@@ -32,44 +32,25 @@ def get_cbbi_data(from_database=None):
             
         logger.info("Fetching CBBI score data")
         
-        # Try to scrape from the official source
+        # Get approximate CBBI score
+        cbbi_score = 0.5  # Default mid-range value
         try:
-            url = "https://colintalkscrypto.com/cbbi/"
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-            }
-            
-            response = requests.get(url, headers=headers)
-            
-            if response.status_code == 200:
-                # Parse HTML to extract CBBI score
-                soup = BeautifulSoup(response.text, 'html.parser')
-                
-                # This is a simplified implementation - actual scraping would depend on the site structure
-                # Look for the score element
-                score_element = soup.find('div', {'id': 'cbbi-score'})  # This ID is hypothetical
-                
-                if score_element:
-                    cbbi_score = float(score_element.text.strip())
-                    logger.info(f"Successfully scraped CBBI score: {cbbi_score}")
-                else:
-                    # If scraping fails, calculate an approximation
-                    logger.warning("Could not scrape CBBI score, calculating approximation")
-                    cbbi_score = calculate_approximate_cbbi()
-            else:
-                logger.warning(f"Failed to fetch CBBI data: {response.status_code}")
-                cbbi_score = calculate_approximate_cbbi()
-                
-        except Exception as e:
-            logger.warning(f"Error scraping CBBI data: {str(e)}")
             cbbi_score = calculate_approximate_cbbi()
+            logger.info(f"Using calculated CBBI score: {cbbi_score}")
+        except Exception as e:
+            logger.error(f"Error calculating CBBI score: {str(e)}")
+            # Keep the default value
         
         # Current date
         current_date = datetime.now().strftime('%Y-%m-%d')
         
         # Fetch current BTC price for context
-        btc_data = yf.download('BTC-USD', period='1d')
-        current_price = btc_data['Close'].iloc[-1] if not btc_data.empty else None
+        try:
+            btc_data = yf.download('BTC-USD', period='1d', progress=False)
+            current_price = float(btc_data['Close'].iloc[-1]) if not btc_data.empty else None
+        except Exception as e:
+            logger.warning(f"Error fetching current BTC price: {str(e)}")
+            current_price = None
         
         # Build response
         response_data = {
@@ -79,49 +60,56 @@ def get_cbbi_data(from_database=None):
             'history': []
         }
         
-        # Simulate historical data for demonstration
-        # In a real implementation, this would come from a database
-        start_date = datetime.now() - timedelta(days=365*2)  # 2 years of data
-        dates = pd.date_range(start=start_date, end=datetime.now(), freq='D')
-        
-        # Get historical BTC prices
-        btc_historical = yf.download('BTC-USD', start=start_date, end=datetime.now())
-        
-        # Simulate CBBI scores based on BTC price movements
-        # This is a simplified model for demonstration
-        history = []
-        for date in dates:
-            date_str = date.strftime('%Y-%m-%d')
+        # Generate historical data
+        try:
+            # In a real implementation, this would come from a database
+            start_date = datetime.now() - timedelta(days=365*2)  # 2 years of data
             
-            if date_str in btc_historical.index.strftime('%Y-%m-%d').tolist():
-                idx = btc_historical.index.strftime('%Y-%m-%d').tolist().index(date_str)
-                btc_price = btc_historical['Close'].iloc[idx]
+            # Get historical BTC prices
+            btc_historical = yf.download('BTC-USD', start=start_date, end=datetime.now(), progress=False)
+            
+            if not btc_historical.empty:
+                # Create date range for history
+                dates = pd.date_range(start=start_date, end=datetime.now(), freq='D')
                 
-                # Calculate a simulated CBBI score
-                # This is just a simple model for demonstration
-                # Higher prices tend to have higher CBBI scores
-                price_max = btc_historical['Close'].max()
-                price_min = btc_historical['Close'].min()
-                price_range = price_max - price_min
+                # Generate history
+                history = []
+                for date in dates:
+                    date_str = date.strftime('%Y-%m-%d')
+                    
+                    # Find the closest trading day in our data
+                    btc_historical_dates = btc_historical.index.strftime('%Y-%m-%d').tolist()
+                    if date_str in btc_historical_dates:
+                        idx = btc_historical_dates.index(date_str)
+                        btc_price = float(btc_historical['Close'].iloc[idx])
+                        
+                        # Calculate a simulated CBBI score based on price position
+                        price_max = float(btc_historical['Close'].max())
+                        price_min = float(btc_historical['Close'].min())
+                        price_range = price_max - price_min
+                        
+                        if price_range > 0:
+                            # Base score on normalized price position
+                            base_score = (btc_price - price_min) / price_range
+                            
+                            # Add some cyclical variation
+                            days_since_start = (date - start_date).days
+                            cycle_component = 0.15 * np.sin(days_since_start / 30 * 2 * np.pi)
+                            
+                            # Combine components
+                            simulated_score = min(1.0, max(0.0, base_score * 0.7 + cycle_component + 0.1))
+                            
+                            history.append({
+                                'date': date_str,
+                                'score': float(simulated_score),
+                                'btc_price': float(btc_price)
+                            })
                 
-                if price_range > 0:
-                    # Base score on normalized price position
-                    base_score = (btc_price - price_min) / price_range
-                    
-                    # Add some cyclical variation
-                    days_since_start = (date - start_date).days
-                    cycle_component = 0.15 * np.sin(days_since_start / 30 * 2 * np.pi)
-                    
-                    # Combine components
-                    simulated_score = min(1.0, max(0.0, base_score * 0.7 + cycle_component + 0.1))
-                    
-                    history.append({
-                        'date': date_str,
-                        'score': simulated_score,
-                        'btc_price': btc_price
-                    })
-        
-        response_data['history'] = history
+                response_data['history'] = history
+                logger.info(f"Generated {len(history)} historical CBBI data points")
+        except Exception as e:
+            logger.error(f"Error generating historical CBBI data: {str(e)}")
+            # Keep empty history
         
         logger.info("CBBI data processed successfully")
         return response_data
