@@ -112,8 +112,8 @@ def get_halving_data(from_database=None):
                     halving_day_price = btc_current.loc[closest_date, 'Close']
                     
                     # Normalize prices to 100 at halving day
-                    normalized_prices = (btc_current['Close'] / halving_day_price * 100).tolist()
-                    current_cycle_data['normalized_prices'] = normalized_prices
+                    normalized_prices = (btc_current['Close'] / halving_day_price * 100)
+                    current_cycle_data['normalized_prices'] = normalized_prices.tolist() if hasattr(normalized_prices, 'tolist') else list(normalized_prices)
             
             response_data['current_cycle'] = current_cycle_data
             
@@ -143,12 +143,12 @@ def get_halving_data(from_database=None):
                         halving_day_price = btc_cycle.loc[closest_date, 'Close']
                         
                         # Normalize prices to 100 at halving day
-                        normalized_prices = (btc_cycle['Close'] / halving_day_price * 100).tolist()
+                        normalized_prices = (btc_cycle['Close'] / halving_day_price * 100)
                         
                         previous_cycles.append({
                             'halving_date': halving_dates[i],
                             'next_halving': halving_dates[i+1],
-                            'normalized_prices': normalized_prices
+                            'normalized_prices': normalized_prices.tolist() if hasattr(normalized_prices, 'tolist') else list(normalized_prices)
                         })
             
             response_data['previous_cycles'] = previous_cycles

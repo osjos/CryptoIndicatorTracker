@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 import random
+import numpy as np
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')

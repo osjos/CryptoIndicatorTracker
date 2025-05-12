@@ -85,17 +85,17 @@ def get_mag7_btc_data(from_database=None):
         
         # Build response data
         response = {
-            'dates': index_data.index.strftime('%Y-%m-%d').tolist(),
-            'index_values': index_data['Smoothed_Index'].tolist(),
-            'ma200': index_data['MA200'].tolist(),
-            'ma150': index_data['MA150'].tolist(),
-            'ma100': index_data['MA100'].tolist(),
-            'ema200': index_data['EMA200'].tolist(),
-            'ema150': index_data['EMA150'].tolist(),
-            'ema100': index_data['EMA100'].tolist(),
-            'current_value': index_data['Smoothed_Index'].iloc[-1],
-            'ma100': index_data['MA100'].iloc[-1],
-            'ma200': index_data['MA200'].iloc[-1]
+            'dates': index_data.index.strftime('%Y-%m-%d').tolist() if hasattr(index_data.index, 'strftime') else [str(date) for date in index_data.index],
+            'index_values': index_data['Smoothed_Index'].tolist() if hasattr(index_data['Smoothed_Index'], 'tolist') else list(index_data['Smoothed_Index']),
+            'ma200': index_data['MA200'].tolist() if hasattr(index_data['MA200'], 'tolist') else list(index_data['MA200']),
+            'ma150': index_data['MA150'].tolist() if hasattr(index_data['MA150'], 'tolist') else list(index_data['MA150']),
+            'ma100': index_data['MA100'].tolist() if hasattr(index_data['MA100'], 'tolist') else list(index_data['MA100']),
+            'ema200': index_data['EMA200'].tolist() if hasattr(index_data['EMA200'], 'tolist') else list(index_data['EMA200']),
+            'ema150': index_data['EMA150'].tolist() if hasattr(index_data['EMA150'], 'tolist') else list(index_data['EMA150']),
+            'ema100': index_data['EMA100'].tolist() if hasattr(index_data['EMA100'], 'tolist') else list(index_data['EMA100']),
+            'current_value': index_data['Smoothed_Index'].iloc[-1] if len(index_data['Smoothed_Index']) > 0 else None,
+            'ma100': index_data['MA100'].iloc[-1] if len(index_data['MA100']) > 0 else None,
+            'ma200': index_data['MA200'].iloc[-1] if len(index_data['MA200']) > 0 else None
         }
         
         # Add known BTC tops/bottoms
@@ -103,22 +103,26 @@ def get_mag7_btc_data(from_database=None):
         cycle_bottoms = ['2018-12-15', '2022-06-18']
         
         response['tops'] = []
-        for top in cycle_tops:
-            if top in index_data.index.strftime('%Y-%m-%d').tolist():
-                idx = index_data.index.strftime('%Y-%m-%d').tolist().index(top)
-                response['tops'].append({
-                    'date': top,
-                    'value': index_data['BTC_Mag7_Index'].iloc[idx]
-                })
+        if hasattr(index_data.index, 'strftime'):
+            dates_list = index_data.index.strftime('%Y-%m-%d').tolist()
+            for top in cycle_tops:
+                if top in dates_list:
+                    idx = dates_list.index(top)
+                    response['tops'].append({
+                        'date': top,
+                        'value': float(index_data['BTC_Mag7_Index'].iloc[idx])
+                    })
         
         response['bottoms'] = []
-        for bottom in cycle_bottoms:
-            if bottom in index_data.index.strftime('%Y-%m-%d').tolist():
-                idx = index_data.index.strftime('%Y-%m-%d').tolist().index(bottom)
-                response['bottoms'].append({
-                    'date': bottom,
-                    'value': index_data['BTC_Mag7_Index'].iloc[idx]
-                })
+        if hasattr(index_data.index, 'strftime'):
+            dates_list = index_data.index.strftime('%Y-%m-%d').tolist()
+            for bottom in cycle_bottoms:
+                if bottom in dates_list:
+                    idx = dates_list.index(bottom)
+                    response['bottoms'].append({
+                        'date': bottom,
+                        'value': float(index_data['BTC_Mag7_Index'].iloc[idx])
+                    })
         
         logger.info("MAG7-BTC data processed successfully")
         return response

@@ -103,9 +103,13 @@ def get_indicator_status(name, value, thresholds):
 if page == "Dashboard Overview":
     st.header("Market Indicators Dashboard")
     
-    # Featured image
-    st.image("https://pixabay.com/get/gba855e2ee58e3ba5e4783326bbebb6daf5ffb7aad118f273e2f60dc1cf4ef24142cb81f1d98ea1a765ffeb24cb617987b4806204ef7b9a46e89cb7b8c9f260e1_1280.jpg", 
-             caption="Market Dashboard Overview")
+    # Add description about what this dashboard shows
+    st.markdown("""
+    This dashboard displays the current status of multiple market indicators that can help identify:
+    - **Market Tops**: When multiple indicators signal caution or bearish conditions
+    - **Accumulation Zones**: When indicators suggest favorable entry points
+    - **Overall Market Health**: A quick overview of market sentiment across indicators
+    """)
     
     # Create indicator grid
     col1, col2, col3 = st.columns(3)
@@ -253,7 +257,7 @@ if page == "Dashboard Overview":
         # Market summary
         if bearish_count >= 3:
             st.error("⚠️ Multiple indicators showing top signals - consider reducing exposure")
-        elif bearish_count >= a2:
+        elif bearish_count >= 2:
             st.warning("🔍 Some top indicators active - monitor closely and consider taking profits")
         elif bullish_count >= 3:
             st.success("✅ Most indicators in accumulation phase - favorable for long-term entry")
