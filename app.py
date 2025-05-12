@@ -216,8 +216,8 @@ if page == "Dashboard Overview":
         # MAG7 vs BTC
         if 'mag7_btc' in data and data['mag7_btc'] is not None:
             current_value = data['mag7_btc'].get('current_value')
-            ma100 = data['mag7_btc'].get('ma100')
-            ma200 = data['mag7_btc'].get('ma200')
+            ma100 = data['mag7_btc'].get('current_ma100')
+            ma200 = data['mag7_btc'].get('current_ma200')
             status, _ = get_indicator_status("MAG7 vs BTC", current_value, [ma100, ma200])
             indicators.append(status)
         
@@ -327,14 +327,7 @@ elif page == "MAG7 vs Bitcoin":
         ))
         
         # Add the MAs
-        fig.add_trace(go.Scatter(
-            x=data['mag7_btc']['dates'],
-            y=data['mag7_btc']['ma100'],
-            name="MA100",
-            line=dict(color='orange', width=1.5),
-            mode='lines'
-        ))
-        
+        # Only showing MA200 (removed MA100 as requested)
         fig.add_trace(go.Scatter(
             x=data['mag7_btc']['dates'],
             y=data['mag7_btc']['ma200'],
@@ -343,14 +336,7 @@ elif page == "MAG7 vs Bitcoin":
             mode='lines'
         ))
         
-        # Add EMAs
-        fig.add_trace(go.Scatter(
-            x=data['mag7_btc']['dates'],
-            y=data['mag7_btc']['ema100'],
-            name="EMA100",
-            line=dict(color='purple', width=1.5, dash='dot'),
-            mode='lines'
-        ))
+        # Only showing EMA200 (removed EMA100 as requested)
         
         fig.add_trace(go.Scatter(
             x=data['mag7_btc']['dates'],
