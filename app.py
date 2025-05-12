@@ -317,11 +317,11 @@ elif page == "MAG7 vs Bitcoin":
             )
         
         with col2:
-            ma100 = data['mag7_btc'].get('current_ma100')
+            ma150 = data['mag7_btc'].get('current_ma150', None)
             st.metric(
-                label="100-day MA", 
-                value=f"{ma100:.2f}" if ma100 else "N/A",
-                delta=f"{(current_value - ma100):.2f}" if current_value and ma100 else None
+                label="150-day MA", 
+                value=f"{ma150:.2f}" if ma150 else "N/A",
+                delta=f"{(current_value - ma150):.2f}" if current_value and ma150 else None
             )
         
         with col3:
@@ -593,7 +593,25 @@ elif page == "Coinbase App Ranking":
     ranking in the US App Store. Rankings are updated daily.
     """)
     
-    # Get Coinbase Ranking data
+    # Embed the professional chart from The Block
+    st.subheader("Crypto Apps Ranking (Data from The Block)")
+    
+    st.components.v1.iframe(
+        src="https://www.theblock.co/data/alternative-crypto-metrics/app-usage/crypto-apps-ranking-on-the-app-store-in-the-us/embed",
+        height=450,
+        scrolling=False
+    )
+    
+    st.markdown("""
+    *Chart source: [The Block](https://www.theblock.co/data/alternative-crypto-metrics/app-usage/crypto-apps-ranking-on-the-app-store-in-the-us)*
+    """)
+    
+    # Add a divider
+    st.markdown("---")
+    
+    # Get Coinbase Ranking data from our own scraper (as a backup/additional data point)
+    st.subheader("Additional Data")
+    
     if 'coinbase_rank' in data and data['coinbase_rank'] is not None:
         # Display current rank
         rank = data['coinbase_rank'].get('rank')
@@ -621,80 +639,28 @@ elif page == "Coinbase App Ranking":
                 value=last_updated
             )
         
-        # Create the chart
-        if 'history' in data['coinbase_rank'] and data['coinbase_rank']['history']:
-            history = data['coinbase_rank']['history']
-            dates = [item['date'] for item in history]
-            
-            # Handle possible string ranks like "200+"
-            ranks = []
-            for item in history:
-                rank_value = item['rank']
-                if isinstance(rank_value, str) and "+" in rank_value:
-                    # Convert "200+" to numeric 200 for charting
-                    ranks.append(float(rank_value.replace("+", "")))
-                else:
-                    ranks.append(rank_value)
-            
-            fig = go.Figure()
-            
-            # Add rank line (inverted so lower rank = higher on chart)
-            fig.add_trace(go.Scatter(
-                x=dates,
-                y=ranks,
-                name="Coinbase Rank",
-                line=dict(color='blue', width=2)
-            ))
-            
-            # Add threshold line at rank 10
-            fig.add_shape(
-                type="line",
-                x0=min(dates),
-                y0=10,
-                x1=max(dates),
-                y1=10,
-                line=dict(color="red", width=2, dash="dash")
-            )
-            
-            # Layout (inverted y-axis so that #1 is at the top)
-            fig.update_layout(
-                title="Coinbase App Store Ranking Over Time",
-                xaxis_title="Date",
-                yaxis_title="App Rank",
-                height=500,
-                yaxis=dict(
-                    autorange="reversed",  # Higher ranks (lower numbers) appear higher on the chart
-                    tickmode="linear",
-                    tick0=1,
-                    dtick=10
-                )
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Analysis
-            st.subheader("Current Analysis")
-            
-            # Check if rank is a string with "+" (like "200+")
-            if isinstance(rank, str) and "+" in rank:
-                st.success("✅ Coinbase app ranking is outside the top charts (200+), suggesting no excessive retail interest or market euphoria.")
-            else:
-                # Convert to numeric for comparison if it's a string number
-                try:
-                    numeric_rank = float(rank) if isinstance(rank, str) else rank
-                    if numeric_rank <= 10:
-                        st.error("⚠️ Coinbase is in the top 10 apps, which historically has coincided with market tops. This suggests extreme retail interest.")
-                    elif numeric_rank <= 50:
-                        st.warning("🔍 Coinbase ranking shows elevated retail interest. Monitor closely as it might signal increasing market euphoria.")
-                    else:
-                        st.success("✅ Coinbase app ranking is at a normal level, suggesting no excessive retail interest or market euphoria.")
-                except (ValueError, TypeError):
-                    # If conversion fails, assume it's a high rank
-                    st.success("✅ Coinbase app ranking appears to be at a normal level, suggesting no excessive retail interest or market euphoria.")
+        # Analysis
+        st.subheader("Current Analysis")
+        
+        # Check if rank is a string with "+" (like "200+")
+        if isinstance(rank, str) and "+" in rank:
+            st.success("✅ Coinbase app ranking is outside the top charts (200+), suggesting no excessive retail interest or market euphoria.")
         else:
-            st.warning("Historical ranking data not available.")
+            # Convert to numeric for comparison if it's a string number
+            try:
+                numeric_rank = float(rank) if isinstance(rank, str) else rank
+                if numeric_rank <= 10:
+                    st.error("⚠️ Coinbase is in the top 10 apps, which historically has coincided with market tops. This suggests extreme retail interest.")
+                elif numeric_rank <= 50:
+                    st.warning("🔍 Coinbase ranking shows elevated retail interest. Monitor closely as it might signal increasing market euphoria.")
+                else:
+                    st.success("✅ Coinbase app ranking is at a normal level, suggesting no excessive retail interest or market euphoria.")
+            except (ValueError, TypeError):
+                # If conversion fails, assume it's a high rank
+                st.success("✅ Coinbase app ranking appears to be at a normal level, suggesting no excessive retail interest or market euphoria.")
     else:
-        st.warning("Coinbase ranking data not available. Please update the data.")
+        # Even if our scraper fails, we still have The Block's chart
+        st.info("Our internal data collector couldn't retrieve the current Coinbase app rank. Please refer to The Block's chart above for the most current data.")
 
 # CBBI Score page
 elif page == "CBBI Score":
