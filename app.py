@@ -857,20 +857,14 @@ elif page == "Coinbase App Ranking":
 elif page == "CBBI Score":
     st.header("CBBI (Colin Talks Crypto Bitcoin Index) Score")
     
-    # Description
-    st.markdown("""
-    The CBBI Score combines multiple technical indicators to create a single metric for estimating Bitcoin market tops.
-    It includes indicators like Pi Cycle, Puell Multiple, 2-Year MA Multiplier, and others.
-    
-    Values closer to 1 suggest market euphoria and potential tops, while values closer to 0 suggest bear markets and accumulation opportunities.
-    """)
+
     
     # Technical details
     st.markdown("""
-    CBBI score ranges from 0 to 1:
-    - Score > 0.8: Potential market top, consider reducing exposure
-    - Score 0.6-0.8: Caution zone, monitor closely
-    - Score < 0.6: Accumulation phase, favorable for long-term entry
+    CBBI score ranges from 0 to 100:
+    - Score > 80: Potential market top, consider reducing exposure
+    - Score 60-80: Caution zone, monitor closely
+    - Score < 60: Accumulation phase, favorable for long-term entry
     """)
     
     # Get CBBI data
@@ -883,7 +877,7 @@ elif page == "CBBI Score":
         with col1:
             st.metric(
                 label="Current CBBI Score", 
-                value=f"{score:.2f}" if score else "N/A"
+                value=f"{int(score*100)}" if score else "N/A"
             )
             st.markdown(f"<h3 style='color:{color}'>{status}</h3>", unsafe_allow_html=True)
         
@@ -938,10 +932,10 @@ elif page == "CBBI Score":
                 yaxis_title="CBBI Score",
                 height=500,
                 yaxis=dict(
-                    range=[0, 1],
+                    range=[0, 100],
                     tickmode="linear",
                     tick0=0,
-                    dtick=0.1
+                    dtick=10
                 )
             )
             
@@ -1026,7 +1020,7 @@ elif page == "CBBI Score":
             # Analysis
             st.subheader("Current Analysis")
             if score > 0.8:
-                st.error("⚠️ CBBI Score indicates market euphoria. Historically, scores above 0.8 have been seen near market tops.")
+                st.error("⚠️ CBBI Score indicates market euphoria. Historically, scores above 80 have been seen near market tops.")
             elif score > 0.6:
                 st.warning("🔍 CBBI Score shows increasing market optimism. Consider taking partial profits if the trend continues.")
             elif score < 0.3:
@@ -1037,6 +1031,22 @@ elif page == "CBBI Score":
             st.warning("Historical CBBI data not available.")
     else:
         st.warning("CBBI data not available. Please update the data.")
+        
+    # Add explanatory text at the bottom of the page
+    st.markdown("---")
+    st.subheader("About CBBI Score")
+    st.markdown("""
+    The CBBI (Colin Talks Crypto Bitcoin Index) Score combines multiple technical indicators to create a single metric for estimating Bitcoin market tops.
+    It includes indicators like Pi Cycle, Puell Multiple, 2-Year MA Multiplier, and others.
+    
+    Values closer to 100 suggest market euphoria and potential tops, while values closer to 0 suggest bear markets and accumulation opportunities.
+    
+    The CBBI is a useful tool for:
+    - Identifying potential market tops and bottoms
+    - Gauging overall market sentiment
+    - Supporting longer-term investment decisions
+    - Creating a combined view across multiple indicators
+    """)
 
 # Halving Cycle page
 elif page == "Halving Cycle":
