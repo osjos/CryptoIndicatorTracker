@@ -610,8 +610,79 @@ elif page == "Coinbase App Ranking":
     </div>
     """, unsafe_allow_html=True)
     
-    # Create chart options with AppFigures integration
-    tab1, tab2, tab3 = st.tabs(["All Crypto Apps", "Coinbase Only", "Live AppFigures Rankings"])
+    # Create chart options with AppFigures integration - making Live AppFigures the default tab
+    tab3, tab2, tab1 = st.tabs(["Live AppFigures Rankings", "Coinbase Only", "All Crypto Apps"])
+    
+    with tab3:
+        # Create a section for live AppFigures data
+        st.subheader("Live App Store Rankings")
+        
+        st.markdown("""
+        This tab shows real-time data from AppFigures.com, tracking free iPhone apps in the US App Store.
+        If Coinbase appears in the top charts, it indicates significant retail interest in cryptocurrency.
+        """)
+        
+        # Display the current Coinbase ranking from our scraper
+        if 'coinbase_rank' in data and data['coinbase_rank'] is not None:
+            rank = data['coinbase_rank'].get('rank')
+            last_updated = data['coinbase_rank'].get('last_updated')
+            source = data['coinbase_rank'].get('source', 'AppFigures.com - US iPhone Free Apps')
+            
+            # Create metrics display
+            st.subheader("Coinbase Current Ranking")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Format the rank display properly
+                if isinstance(rank, str) and "+" in rank:
+                    display_rank = f"#{rank}"
+                else:
+                    display_rank = f"#{rank}" if rank else "N/A"
+                
+                st.metric(
+                    label="Current App Store Rank", 
+                    value=display_rank
+                )
+            
+            with col2:
+                st.metric(
+                    label="Last Updated", 
+                    value=last_updated if last_updated else "Unknown"
+                )
+            
+            # Add source info
+            st.caption(f"Source: {source}")
+            
+            # Display ranking interpretation
+            if isinstance(rank, str) and "+" in rank:
+                st.success("✅ Coinbase is currently outside the top 200 apps, suggesting very low retail interest in cryptocurrency at the moment.")
+            elif isinstance(rank, int):
+                if rank <= 10:
+                    st.error("🚨 Coinbase is in the top 10 apps, which historically indicates extreme market euphoria and possible market tops!")
+                elif rank <= 50:
+                    st.warning("⚠️ Coinbase is in the top 50 apps, showing high retail interest that often precedes local market tops.")
+                elif rank <= 150:
+                    st.info("ℹ️ Coinbase is in the top 150 apps, indicating moderate retail interest in cryptocurrency.")
+                else:
+                    st.success("✅ Coinbase is outside the top 150 apps, suggesting low retail interest typical of accumulation phases.")
+        else:
+            st.warning("Could not retrieve current Coinbase ranking data. Please try updating the data.")
+        
+        # Add the AppFigures iframe for live data - this is the main content of this tab
+        st.markdown("### Browse Live App Store Rankings")
+        st.info("The iframe below shows real-time data from AppFigures.com. You can browse through the rankings to manually verify Coinbase's position.")
+        
+        # Embedded iframe with live AppFigures data
+        st.markdown("""
+        <iframe src="https://appfigures.com/top-apps/ios-app-store/united-states/iphone/top-free" 
+                width="100%" height="600" frameborder="0"></iframe>
+        """, unsafe_allow_html=True)
+    
+    with tab2:
+        # Create a simplified custom chart focused only on Coinbase
+        st.markdown("#### Coinbase App Store Ranking Over Time")
+        # Historical chart will be added here after we implement data storage
+        st.info("Historical data chart will be added as data is collected. Check back soon!")
     
     with tab1:
         # Regular iframe with all data
@@ -620,14 +691,6 @@ elif page == "Coinbase App Ranking":
             height=450,
             scrolling=False
         )
-    
-    with tab2:
-        # Create a simplified custom chart focused only on Coinbase
-        st.markdown("#### Coinbase App Store Ranking Over Time")
-    
-    with tab3:
-        # Create a section for live AppFigures data
-        st.subheader("Live App Store Rankings")
         
         st.markdown("""
         This tab shows real-time data from AppFigures.com, tracking free iPhone apps in the US App Store.
