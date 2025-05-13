@@ -871,55 +871,55 @@ elif page == "Coinbase App Ranking":
                 line=dict(width=0),
                 layer="below"
             )
-        
-        # Customize chart layout
-        fig.update_layout(
-            title="Coinbase App Store Ranking (Simplified Approximation)",
-            xaxis_title="Date",
-            yaxis_title="App Store Ranking",
-            yaxis=dict(
-                autorange="reversed",  # Lower number = better ranking
-                tickvals=[1, 10, 50, 100, 150, 200, 250, 300],
-                ticktext=["#1", "#10", "#50", "#100", "#150", "#200", "#250", "#300"],
-            ),
-            height=400,
-            margin=dict(l=20, r=20, t=40, b=20),
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1
-            ),
-            annotations=[
-                dict(
-                    x=0.5,
-                    y=-0.15,
-                    showarrow=False,
-                    text="Note: This is a simplified approximation for illustration purposes only",
-                    xref="paper",
-                    yref="paper",
-                    font=dict(size=10, color="gray")
-                )
-            ]
-        )
-        
-        # Display the chart
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Add explanation about the visualization
-        st.markdown("""
-        **Chart Interpretation:**
-        - 🔴 **Red zone (Top 10)**: Extreme retail FOMO, often coincides with market cycle tops
-        - 🟠 **Orange zone (Top 50)**: Very high retail interest, potential local tops
-        - 🟡 **Yellow zone (Top 50-150)**: Moderate retail interest, increasing momentum
-        - 🟢 **Green zone (>150)**: Low retail interest, potential accumulation periods
-        
-        **Current status (rank ~255)**: Low retail interest in the green zone, suggesting the market 
-        may be in an accumulation phase rather than at a cycle top.
-        
-        This visualization demonstrates how Coinbase's App Store ranking typically correlates with market 
-        sentiment and cycle positioning.
+            
+            # Customize chart layout
+            fig.update_layout(
+                title="Coinbase App Store Ranking (Simplified Approximation)",
+                xaxis_title="Date",
+                yaxis_title="App Store Ranking",
+                yaxis=dict(
+                    autorange="reversed",  # Lower number = better ranking
+                    tickvals=[1, 10, 50, 100, 150, 200, 250, 300],
+                    ticktext=["#1", "#10", "#50", "#100", "#150", "#200", "#250", "#300"],
+                ),
+                height=400,
+                margin=dict(l=20, r=20, t=40, b=20),
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                ),
+                annotations=[
+                    dict(
+                        x=0.5,
+                        y=-0.15,
+                        showarrow=False,
+                        text="Note: This is a simplified approximation for illustration purposes only",
+                        xref="paper",
+                        yref="paper",
+                        font=dict(size=10, color="gray")
+                    )
+                ]
+            )
+            
+            # Display the chart
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Add explanation about the visualization
+            st.markdown("""
+            **Chart Interpretation:**
+            - 🔴 **Red zone (Top 10)**: Extreme retail FOMO, often coincides with market cycle tops
+            - 🟠 **Orange zone (Top 50)**: Very high retail interest, potential local tops
+            - 🟡 **Yellow zone (Top 50-150)**: Moderate retail interest, increasing momentum
+            - 🟢 **Green zone (>150)**: Low retail interest, potential accumulation periods
+            
+            **Current status (rank ~255)**: Low retail interest in the green zone, suggesting the market 
+            may be in an accumulation phase rather than at a cycle top.
+            
+            This visualization demonstrates how Coinbase's App Store ranking typically correlates with market 
+            sentiment and cycle positioning.
         """)
     
     # Add a custom Coinbase-focused analysis section
