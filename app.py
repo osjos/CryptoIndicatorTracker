@@ -24,19 +24,20 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Dashboard title and description
-st.title("Crypto Market Events Tracker")
-st.markdown("""
-This dashboard tracks multiple crypto market indicators to help determine optimal entry and exit points.
-Data is updated daily and provides signals based on historical patterns.
-""")
-
 # Sidebar for navigation and settings
 st.sidebar.title("Navigation")
 page = st.sidebar.radio(
     "Select Indicator",
     ["Dashboard Overview", "MAG7 vs Bitcoin", "Pi Cycle", "Coinbase App Ranking", "CBBI Score", "Halving Cycle"]
 )
+
+# Only show title and description on the main dashboard page
+if page == "Dashboard Overview":
+    st.title("Crypto Market Events Tracker")
+    st.markdown("""
+    This dashboard tracks multiple crypto market indicators to help determine optimal entry and exit points.
+    Data is updated daily and provides signals based on historical patterns.
+    """)
 
 # Update data button in sidebar
 if st.sidebar.button("Update All Data"):
@@ -585,20 +586,6 @@ elif page == "Pi Cycle":
 # Coinbase App Ranking page
 elif page == "Coinbase App Ranking":
     st.header("Coinbase App Store Ranking")
-    
-    # Description
-    st.markdown("""
-    This indicator tracks Coinbase's position in the App Store rankings. Historically, when Coinbase rises to the top 10 
-    or #1 position in the App Store, it has correlated with local peaks in cryptocurrency market interest and often price.
-    
-    When many new users rush to download crypto trading apps, it often signals peak retail interest.
-    """)
-    
-    # Additional context
-    st.markdown("""
-    Note: This indicator specifically tracks the Coinbase app position in the free iPhone apps 
-    ranking in the US App Store. Rankings are updated daily.
-    """)
     
     # Embed the professional chart from The Block
     st.subheader("Crypto Apps Ranking (Data from The Block)")
