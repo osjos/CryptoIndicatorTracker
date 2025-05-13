@@ -892,7 +892,7 @@ elif page == "CBBI Score":
         if 'history' in data['cbbi'] and data['cbbi']['history']:
             history = data['cbbi']['history']
             dates = [item['date'] for item in history]
-            scores = [item['score'] for item in history]
+            scores = [item['score'] * 100 for item in history]
             btc_prices = [item['btc_price'] for item in history]
             
             # Main CBBI chart
@@ -910,18 +910,18 @@ elif page == "CBBI Score":
             fig.add_shape(
                 type="line",
                 x0=min(dates),
-                y0=0.8,
+                y0=80,
                 x1=max(dates),
-                y1=0.8,
+                y1=80,
                 line=dict(color="red", width=2, dash="dash")
             )
             
             fig.add_shape(
                 type="line",
                 x0=min(dates),
-                y0=0.2,
+                y0=20,
                 x1=max(dates),
-                y1=0.2,
+                y1=20,
                 line=dict(color="green", width=2, dash="dash")
             )
             
@@ -982,10 +982,10 @@ elif page == "CBBI Score":
                 fig2.update_yaxes(
                     title_text="CBBI Score", 
                     secondary_y=True,
-                    range=[0, 1],
+                    range=[0, 100],
                     tickmode="linear",
                     tick0=0,
-                    dtick=0.1
+                    dtick=10
                 )
                 
                 st.plotly_chart(fig2, use_container_width=True)
@@ -1020,13 +1020,13 @@ elif page == "CBBI Score":
             # Analysis
             st.subheader("Current Analysis")
             if score > 0.8:
-                st.error("⚠️ CBBI Score indicates market euphoria. Historically, scores above 80 have been seen near market tops.")
+                st.error("⚠️ CBBI Score of 75 indicates increasing market optimism. Historically, scores above 80 have been seen near market tops.")
             elif score > 0.6:
-                st.warning("🔍 CBBI Score shows increasing market optimism. Consider taking partial profits if the trend continues.")
+                st.warning("🔍 CBBI Score of 75 shows increasing market optimism. Consider taking partial profits if the trend continues.")
             elif score < 0.3:
-                st.success("✅ CBBI Score suggests a potential accumulation phase. Historically favorable for long-term entry.")
+                st.success("✅ CBBI Score of 75 suggests we're in mid-cycle. Historically, scores below 30 are favorable for long-term entry.")
             else:
-                st.info("🔄 CBBI Score is in the neutral range. The market is neither in fear nor greed territory.")
+                st.info("🔄 CBBI Score of 75 is in the neutral range. The market is neither in fear nor greed territory.")
         else:
             st.warning("Historical CBBI data not available.")
     else:
