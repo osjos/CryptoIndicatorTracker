@@ -610,8 +610,8 @@ elif page == "Coinbase App Ranking":
     </div>
     """, unsafe_allow_html=True)
     
-    # Create two chart options
-    tab1, tab2 = st.tabs(["All Crypto Apps", "Coinbase Only (Simplified View)"])
+    # Create chart options with AppFigures integration
+    tab1, tab2, tab3 = st.tabs(["All Crypto Apps", "Coinbase Only", "Live AppFigures Rankings"])
     
     with tab1:
         # Regular iframe with all data
