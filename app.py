@@ -624,7 +624,7 @@ elif page == "Coinbase App Ranking":
     with tab2:
         # Create a simplified custom chart focused only on Coinbase
         st.markdown("#### Coinbase App Store Ranking Over Time")
-        
+    
     with tab3:
         # Create a section for live AppFigures data
         st.subheader("Live App Store Rankings")
@@ -701,31 +701,7 @@ elif page == "Coinbase App Ranking":
                     width="100%" height="600" frameborder="0"></iframe>
             """, unsafe_allow_html=True)
         
-        # Create a simplified custom chart that shows Coinbase ranking
-        import plotly.graph_objects as go
-        from datetime import datetime, timedelta
-        
-        # Create sample data for Coinbase ranking
-        # This is an approximation of what Coinbase's ranking might look like
-        # In a real implementation, you'd want to scrape this data directly
-        
-        # Create dates for the last 12 months
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=365)
-        dates = [start_date + timedelta(days=i) for i in range(0, 365, 7)]  # Weekly data points
-        
-        # Sample ranking data based on actual The Block data
-        # Showing Coinbase's approximate ranking over time with current rank ~255
-        rankings = [
-            270, 265, 260, 250, 240, 235, 225, 220, 210, 200, 210, 220,
-            230, 240, 245, 250, 240, 230, 220, 200, 180, 160, 150, 140,
-            130, 120, 110, 100, 90, 80, 70, 60, 50, 40, 30,
-            20, 10, 8, 15, 25, 40, 60, 80, 100, 120, 140,
-            160, 180, 200, 220, 240, 255
-        ]
-        
-        # Ensure our data lists are the same length
-        rankings = rankings[:len(dates)]
+
         
         # Color code for market interpretation
         colors = []
