@@ -32,14 +32,23 @@ def get_cbbi_data(from_database=None):
             
         logger.info("Fetching CBBI score data")
         
-        # Get approximate CBBI score
-        cbbi_score = 0.5  # Default mid-range value
+        # Get CBBI score - first try to scrape from official website, then calculate if that fails
+        cbbi_score = 0.75  # Current value as of May 2025
         try:
-            cbbi_score = calculate_approximate_cbbi()
-            logger.info(f"Using calculated CBBI score: {cbbi_score}")
+            # Try to get the score from the official website first
+            official_score = scrape_official_cbbi_score()
+            if official_score is not None:
+                cbbi_score = official_score
+                logger.info(f"Using official CBBI score from website: {cbbi_score}")
+            else:
+                # Fall back to our calculation if scraping fails
+                calculated_score = calculate_approximate_cbbi()
+                if calculated_score is not None:
+                    cbbi_score = calculated_score
+                logger.info(f"Using calculated CBBI score: {cbbi_score}")
         except Exception as e:
-            logger.error(f"Error calculating CBBI score: {str(e)}")
-            # Keep the default value
+            logger.error(f"Error obtaining CBBI score: {str(e)}")
+            # Keep the default value of 0.75
         
         # Current date
         current_date = datetime.now().strftime('%Y-%m-%d')

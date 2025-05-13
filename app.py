@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
@@ -611,7 +612,7 @@ elif page == "Coinbase App Ranking":
     
     with tab1:
         # Regular iframe with all data
-        st.components.v1.iframe(
+        components.iframe(
             src="https://www.theblock.co/data/alternative-crypto-metrics/app-usage/crypto-apps-ranking-on-the-app-store-in-the-us/embed",
             height=450,
             scrolling=False
@@ -944,51 +945,83 @@ elif page == "CBBI Score":
                 )
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            # Create tabs for different views
+            tab1, tab2, tab3 = st.tabs(["CBBI Chart", "CBBI vs BTC Price", "Official CBBI Chart"])
             
-            # BTC price with CBBI overlays
-            fig2 = make_subplots(specs=[[{"secondary_y": True}]])
+            with tab1:
+                st.plotly_chart(fig, use_container_width=True)
             
-            # Add BTC price
-            fig2.add_trace(
-                go.Scatter(
-                    x=dates,
-                    y=btc_prices,
-                    name="Bitcoin Price",
-                    line=dict(color='orange', width=2)
-                ),
-                secondary_y=False
-            )
+            with tab2:
+                # BTC price with CBBI overlays
+                fig2 = make_subplots(specs=[[{"secondary_y": True}]])
+                
+                # Add BTC price
+                fig2.add_trace(
+                    go.Scatter(
+                        x=dates,
+                        y=btc_prices,
+                        name="Bitcoin Price",
+                        line=dict(color='orange', width=2)
+                    ),
+                    secondary_y=False
+                )
+                
+                # Add CBBI score
+                fig2.add_trace(
+                    go.Scatter(
+                        x=dates,
+                        y=scores,
+                        name="CBBI Score",
+                        line=dict(color='blue', width=2)
+                    ),
+                    secondary_y=True
+                )
+                
+                # Layout
+                fig2.update_layout(
+                    title="Bitcoin Price vs CBBI Score",
+                    xaxis_title="Date",
+                    height=500
+                )
+                
+                fig2.update_yaxes(title_text="Bitcoin Price (USD)", secondary_y=False)
+                fig2.update_yaxes(
+                    title_text="CBBI Score", 
+                    secondary_y=True,
+                    range=[0, 1],
+                    tickmode="linear",
+                    tick0=0,
+                    dtick=0.1
+                )
+                
+                st.plotly_chart(fig2, use_container_width=True)
             
-            # Add CBBI score
-            fig2.add_trace(
-                go.Scatter(
-                    x=dates,
-                    y=scores,
-                    name="CBBI Score",
-                    line=dict(color='blue', width=2)
-                ),
-                secondary_y=True
-            )
-            
-            # Layout
-            fig2.update_layout(
-                title="Bitcoin Price vs CBBI Score",
-                xaxis_title="Date",
-                height=500
-            )
-            
-            fig2.update_yaxes(title_text="Bitcoin Price (USD)", secondary_y=False)
-            fig2.update_yaxes(
-                title_text="CBBI Score", 
-                secondary_y=True,
-                range=[0, 1],
-                tickmode="linear",
-                tick0=0,
-                dtick=0.1
-            )
-            
-            st.plotly_chart(fig2, use_container_width=True)
+            with tab3:
+                st.subheader("Official CBBI Chart from Colin Talks Crypto")
+                st.markdown("""
+                This is the official CBBI chart from [colintalkscrypto.com](https://colintalkscrypto.com/cbbi/). 
+                The Colin Talks Crypto Bitcoin Bull Run Index combines multiple indicators to estimate the current 
+                market cycle position.
+                """)
+                
+                # Embed the official CBBI chart from the website
+                components.iframe(
+                    src="https://colintalkscrypto.com/cbbi/",
+                    height=600,
+                    scrolling=True
+                )
+                
+                st.markdown("""
+                *Source: [Colin Talks Crypto Bitcoin Bull Run Index](https://colintalkscrypto.com/cbbi/)*
+                
+                The CBBI chart represents a normalized score from 0 to 1, where:
+                - Values close to 1 indicate potential market tops (typically above 0.8)
+                - Values close to 0 indicate potential market bottoms (typically below 0.2)
+                - Values in between suggest the market is in transition
+                """)
+                
+                # Add attribution and explanation
+                st.info("The official CBBI combines 8 different indicators to create a comprehensive view of the market cycle.")
             
             # Analysis
             st.subheader("Current Analysis")
