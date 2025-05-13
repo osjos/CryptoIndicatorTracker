@@ -841,83 +841,91 @@ elif page == "Coinbase App Ranking":
         
 
         
-        # Color code for market interpretation
-        colors = []
-        for rank in rankings:
-            if rank <= 10:  # Top 10 = market top warning (extreme FOMO)
-                colors.append('red')
-            elif rank <= 50:  # Top 50 = high retail interest
-                colors.append('orange')
-            elif rank <= 150:  # Top 150 = moderate interest
-                colors.append('yellow')
-            else:  # > 150 = low retail interest
-                colors.append('green')
+        # Get historical Coinbase rankings from our database
+        historical_rankings = get_historical_coinbase_rankings()
         
-        # Create the chart
-        fig = go.Figure()
+        if historical_rankings:
+            # Extract the dates and ranks into lists for plotting
+            dates = [entry['date'] for entry in historical_rankings]
+            rankings = [entry['rank'] for entry in historical_rankings]
+            
+            # Color code for market interpretation
+            colors = []
+            for rank in rankings:
+                if rank <= 10:  # Top 10 = market top warning (extreme FOMO)
+                    colors.append('red')
+                elif rank <= 50:  # Top 50 = high retail interest
+                    colors.append('orange')
+                elif rank <= 150:  # Top 150 = moderate interest
+                    colors.append('yellow')
+                else:  # > 150 = low retail interest
+                    colors.append('green')
         
-        # Add ranking line
-        fig.add_trace(go.Scatter(
-            x=dates,
-            y=rankings,
-            mode='lines+markers',
-            name='Coinbase Ranking',
-            line=dict(color='#0052FF', width=3),  # Coinbase blue
-            marker=dict(
-                size=8,
-                color=colors,
-                line=dict(
-                    color='DarkSlateGrey',
-                    width=1
+            # Create the chart
+            fig = go.Figure()
+            
+            # Add ranking line
+            fig.add_trace(go.Scatter(
+                x=dates,
+                y=rankings,
+                mode='lines+markers',
+                name='Coinbase Ranking',
+                line=dict(color='#0052FF', width=3),  # Coinbase blue
+                marker=dict(
+                    size=8,
+                    color=colors,
+                    line=dict(
+                        color='DarkSlateGrey',
+                        width=1
+                    )
                 )
-            )
-        ))
+            ))
         
-        # Add horizontal zones for context
-        # Red zone (top 10)
-        fig.add_shape(
-            type="rect",
-            x0=min(dates),
-            x1=max(dates),
-            y0=0,
-            y1=10,
-            fillcolor="rgba(255,0,0,0.1)",
-            line=dict(width=0),
-            layer="below"
-        )
-        # Orange zone (top 11-50)
-        fig.add_shape(
-            type="rect",
-            x0=min(dates),
-            x1=max(dates),
-            y0=10,
-            y1=50,
-            fillcolor="rgba(255,165,0,0.1)",
-            line=dict(width=0),
-            layer="below"
-        )
-        # Yellow zone (top 51-150)
-        fig.add_shape(
-            type="rect",
-            x0=min(dates),
-            x1=max(dates),
-            y0=50,
-            y1=150,
-            fillcolor="rgba(255,255,0,0.1)",
-            line=dict(width=0),
-            layer="below"
-        )
-        # Green zone (>150)
-        fig.add_shape(
-            type="rect",
-            x0=min(dates),
-            x1=max(dates),
-            y0=150,
-            y1=300,
-            fillcolor="rgba(0,255,0,0.05)",
-            line=dict(width=0),
-            layer="below"
-        )
+            # Add horizontal zones for context
+            # Red zone (top 10)
+            fig.add_shape(
+                type="rect",
+                x0=min(dates),
+                x1=max(dates),
+                y0=0,
+                y1=10,
+                fillcolor="rgba(255,0,0,0.1)",
+                line=dict(width=0),
+                layer="below"
+            )
+            # Orange zone (top 11-50)
+            fig.add_shape(
+                type="rect",
+                x0=min(dates),
+                x1=max(dates),
+                y0=10,
+                y1=50,
+                fillcolor="rgba(255,165,0,0.1)",
+                line=dict(width=0),
+                layer="below"
+            )
+            # Yellow zone (top 51-150)
+            fig.add_shape(
+                type="rect",
+                x0=min(dates),
+                x1=max(dates),
+                y0=50,
+                y1=150,
+                fillcolor="rgba(255,255,0,0.1)",
+                line=dict(width=0),
+                layer="below"
+            )
+            # Green zone (>150)
+            fig.add_shape(
+                type="rect",
+                x0=min(dates),
+                x1=max(dates),
+                y0=150,
+                y1=300,
+                fillcolor="rgba(0,255,0,0.05)",
+                line=dict(width=0),
+                layer="below"
+            )
         
         # Customize chart layout
         fig.update_layout(
