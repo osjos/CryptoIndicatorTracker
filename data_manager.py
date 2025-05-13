@@ -77,6 +77,55 @@ def init_database():
         logger.error(f"Error initializing database: {str(e)}")
         return False
 
+def get_historical_coinbase_rankings():
+    """
+    Retrieve all historical Coinbase app ranking data from the database.
+    
+    Returns:
+        List of dictionaries containing date and rank for each recorded entry
+    """
+    try:
+        # Check if database exists
+        if not os.path.exists(DB_PATH):
+            logger.info("Database does not exist for historical coinbase data")
+            return []
+        
+        # Connect to database
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Get all coinbase ranking data
+        cursor.execute("SELECT date, data FROM coinbase_rank ORDER BY date ASC")
+        results = cursor.fetchall()
+        
+        historical_data = []
+        
+        if results:
+            for date_str, data_json in results:
+                data = json.loads(data_json)
+                rank = data.get('rank')
+                
+                # Skip entries with no rank
+                if rank is None:
+                    continue
+                    
+                # Convert string ranks like "200+" to integer 201 for consistency in graphs
+                if isinstance(rank, str) and "+" in rank:
+                    rank_value = 201  # Just beyond 200 for visualization
+                else:
+                    rank_value = rank
+                
+                historical_data.append({
+                    'date': date_str,
+                    'rank': rank_value
+                })
+        
+        conn.close()
+        return historical_data
+    except Exception as e:
+        logger.error(f"Error retrieving historical coinbase rankings: {str(e)}")
+        return []
+
 def update_database():
     """
     Update all data sources in the database.
