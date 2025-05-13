@@ -99,13 +99,14 @@ def get_indicator_status(name, value, thresholds):
             return "Normal Interest", "green"
     
     elif name == "CBBI Score":
-        # For CBBI Score, interpret based on score value
+        # For CBBI Score, interpret based on score value (0-1 scale in data)
+        # But display messages using 0-100 scale for consistency
         if value > 0.8:
-            return "Near Top", "red"
+            return "Near Top (>80)", "red"
         elif value > 0.6:
-            return "Caution", "yellow"
+            return "Caution (>60)", "yellow"
         else:
-            return "Accumulation", "green"
+            return "Accumulation (<60)", "green"
     
     elif name == "Halving Cycle":
         # For Halving Cycle, interpret based on days after halving
@@ -197,11 +198,13 @@ if page == "Dashboard Overview":
         st.subheader("CBBI Score")
         if 'cbbi' in data and data['cbbi'] is not None:
             score = data['cbbi'].get('score')
+            # We'll keep the threshold check at decimal level since that's how the data is stored
             status, color = get_indicator_status("CBBI Score", score, [0.8, 0.5])
             
+            # Display as whole number (0-100 scale)
             st.metric(
                 label="Current Score", 
-                value=f"{score:.2f}" if score else "N/A"
+                value=f"{int(score*100)}" if score else "N/A"
             )
             st.markdown(f"<h3 style='color:{color}'>{status}</h3>", unsafe_allow_html=True)
         else:
