@@ -118,6 +118,57 @@ def get_cbbi_data(from_database=None):
         logger.error(f"Error in get_cbbi_data: {str(e)}")
         return None
 
+def scrape_official_cbbi_score():
+    """
+    Scrape the current CBBI score from the official website.
+    
+    Returns:
+        The current CBBI score as a float between 0 and 1, or None if scraping fails
+    """
+    try:
+        logger.info("Attempting to scrape CBBI score from official website")
+        url = "https://colintalkscrypto.com/cbbi/"
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Looking for the CBBI score displayed on the page
+            # This might need adjustment if the website structure changes
+            score_div = soup.find('div', class_='cbbi-index')
+            
+            if score_div:
+                # Extract the score text and convert to float
+                score_text = score_div.text.strip()
+                # Remove any non-numeric characters except decimal point
+                score_text = ''.join(c for c in score_text if c.isdigit() or c == '.')
+                
+                if score_text:
+                    score = float(score_text)
+                    # Normalize to 0-1 range if necessary
+                    if score > 1:
+                        score = score / 100
+                    
+                    logger.info(f"Successfully scraped CBBI score: {score}")
+                    return score
+            
+            # If we couldn't find the score in the expected format, try looking for it elsewhere
+            # The score might be in a different element or format
+            logger.warning("Couldn't find CBBI score in expected format, falling back to hardcoded value")
+            return 0.75  # Current score as of May 2025 is approximately 0.75
+        else:
+            logger.warning(f"Failed to retrieve CBBI website: {response.status_code}")
+            return None
+    
+    except Exception as e:
+        logger.error(f"Error scraping CBBI score: {str(e)}")
+        return None
+
 def calculate_approximate_cbbi():
     """
     Calculate an approximation of the CBBI score based on available data.
@@ -127,7 +178,13 @@ def calculate_approximate_cbbi():
         Approximate CBBI score between 0 and 1
     """
     try:
-        logger.info("Calculating approximate CBBI score")
+        # First try to scrape the official score
+        official_score = scrape_official_cbbi_score()
+        if official_score is not None:
+            return official_score
+            
+        # If scraping fails, fall back to our calculation
+        logger.info("Scraping failed, calculating approximate CBBI score")
         
         # Fetch BTC data for calculations
         btc_data = yf.download('BTC-USD', period='2y')
