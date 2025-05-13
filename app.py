@@ -14,7 +14,7 @@ from utils.pi_cycle import get_pi_cycle_data
 from utils.app_store import get_coinbase_ranking
 from utils.cbbi import get_cbbi_data
 from utils.halving_tracker import get_halving_data
-from data_manager import update_database, get_latest_data
+from data_manager import update_database, get_latest_data, get_historical_coinbase_rankings
 
 # Page configuration
 st.set_page_config(
@@ -610,8 +610,8 @@ elif page == "Coinbase App Ranking":
     </div>
     """, unsafe_allow_html=True)
     
-    # Create chart options with AppFigures integration
-    tab1, tab2, tab3 = st.tabs(["All Crypto Apps", "Coinbase Only", "Live AppFigures Rankings"])
+    # Create chart options with AppFigures integration - making Live AppFigures the default tab
+    tab3, tab2, tab1 = st.tabs(["Live AppFigures Rankings", "Coinbase Only", "All Crypto Apps"])
     
     with tab1:
         # Regular iframe with all data
@@ -624,6 +624,90 @@ elif page == "Coinbase App Ranking":
     with tab2:
         # Create a simplified custom chart focused only on Coinbase
         st.markdown("#### Coinbase App Store Ranking Over Time")
+        
+        # Get historical Coinbase rankings from our database
+        historical_rankings = get_historical_coinbase_rankings()
+        
+        if historical_rankings:
+            # Extract the dates and ranks into lists for plotting
+            dates = [entry['date'] for entry in historical_rankings]
+            rankings = [entry['rank'] for entry in historical_rankings]
+            
+            # Create a figure
+            fig = go.Figure()
+            
+            # Add the Coinbase ranking line (inverted Y axis to make lower ranks appear higher on chart)
+            fig.add_trace(go.Scatter(
+                x=dates,
+                y=rankings,
+                mode='lines+markers',
+                name='Coinbase Rank',
+                line=dict(color='#0052FF', width=3),  # Coinbase blue
+                marker=dict(size=8)
+            ))
+            
+            # Set the Y-axis to be reversed (lower ranks at top of chart)
+            fig.update_layout(
+                title='Coinbase US App Store Ranking History',
+                xaxis_title='Date',
+                yaxis_title='App Store Rank',
+                yaxis=dict(
+                    autorange='reversed',  # This makes rank #1 at the top
+                    tickmode='array',
+                    tickvals=[1, 10, 50, 100, 150, 200],
+                    ticktext=['#1', '#10', '#50', '#100', '#150', '#200+']
+                ),
+                height=500,
+                hovermode='x unified'
+            )
+            
+            # Add specific threshold lines for interpretation
+            if len(dates) > 0:
+                fig.add_shape(type="line", x0=dates[0], x1=dates[-1], y0=10, y1=10,
+                              line=dict(color="red", width=1, dash="dash"),
+                              name="Extreme Interest")
+                
+                fig.add_shape(type="line", x0=dates[0], x1=dates[-1], y0=50, y1=50,
+                              line=dict(color="orange", width=1, dash="dash"),
+                              name="High Interest")
+                              
+                fig.add_shape(type="line", x0=dates[0], x1=dates[-1], y0=150, y1=150,
+                              line=dict(color="green", width=1, dash="dash"),
+                              name="Moderate Interest")
+                
+                # Add annotations for the thresholds
+                fig.add_annotation(x=dates[-1], y=5, text="Extreme Market Euphoria",
+                                  font=dict(color="red"), showarrow=False, xshift=10)
+                
+                fig.add_annotation(x=dates[-1], y=30, text="High Retail Interest",
+                                  font=dict(color="orange"), showarrow=False, xshift=10)
+                                  
+                fig.add_annotation(x=dates[-1], y=100, text="Moderate Interest",
+                                  font=dict(color="green"), showarrow=False, xshift=10)
+                                  
+                fig.add_annotation(x=dates[-1], y=175, text="Low Interest (Accumulation)",
+                                  font=dict(color="blue"), showarrow=False, xshift=10)
+            
+            # Display the chart
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Add interpretation text
+            st.markdown("""
+            #### Interpretation:
+            
+            This chart tracks Coinbase's ranking in the US App Store for free iPhone apps over time. 
+            
+            - **Top 10 (#1-10)**: Extreme retail interest, often indicating market euphoria and potential tops
+            - **Top 50 (#11-50)**: High retail interest, usually associated with strong bull markets
+            - **Top 150 (#51-150)**: Moderate interest, typically seen during normal bull market conditions
+            - **Below 150 (#150+)**: Low retail interest, often present during accumulation phases
+            
+            The Coinbase app ranking is a useful contrarian indicator as extreme retail interest often 
+            coincides with market tops, while very low interest can indicate good accumulation opportunities.
+            """)
+        else:
+            st.info("No historical Coinbase ranking data available yet. Data will accumulate over time as the tracker runs.")
+            st.info("Try updating the data using the button on the main dashboard, or visit again tomorrow.")
     
     with tab3:
         # Create a section for live AppFigures data
