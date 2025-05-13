@@ -999,13 +999,7 @@ elif page == "CBBI Score":
     
 
     
-    # Technical details
-    st.markdown("""
-    CBBI score ranges from 0 to 100:
-    - Score > 80: Potential market top, consider reducing exposure
-    - Score 60-80: Caution zone, monitor closely
-    - Score < 60: Accumulation phase, favorable for long-term entry
-    """)
+
     
     # Get CBBI data
     if 'cbbi' in data and data['cbbi'] is not None:
@@ -1181,6 +1175,11 @@ elif page == "CBBI Score":
     st.markdown("""
     The CBBI (Colin Talks Crypto Bitcoin Index) Score combines multiple technical indicators to create a single metric for estimating Bitcoin market tops.
     It includes indicators like Pi Cycle, Puell Multiple, 2-Year MA Multiplier, and others.
+    
+    CBBI score ranges from 0 to 100:
+    - Score > 80: Potential market top, consider reducing exposure
+    - Score 60-80: Caution zone, monitor closely
+    - Score < 60: Accumulation phase, favorable for long-term entry
     
     Values closer to 100 suggest market euphoria and potential tops, while values closer to 0 suggest bear markets and accumulation opportunities.
     
