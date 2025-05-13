@@ -624,6 +624,90 @@ elif page == "Coinbase App Ranking":
     with tab2:
         # Create a simplified custom chart focused only on Coinbase
         st.markdown("#### Coinbase App Store Ranking Over Time")
+        
+        # Get historical Coinbase rankings from our database
+        historical_rankings = get_historical_coinbase_rankings()
+        
+        if historical_rankings:
+            # Extract the dates and ranks into lists for plotting
+            dates = [entry['date'] for entry in historical_rankings]
+            rankings = [entry['rank'] for entry in historical_rankings]
+            
+            # Create a figure
+            fig = go.Figure()
+            
+            # Add the Coinbase ranking line (inverted Y axis to make lower ranks appear higher on chart)
+            fig.add_trace(go.Scatter(
+                x=dates,
+                y=rankings,
+                mode='lines+markers',
+                name='Coinbase Rank',
+                line=dict(color='#0052FF', width=3),  # Coinbase blue
+                marker=dict(size=8)
+            ))
+            
+            # Set the Y-axis to be reversed (lower ranks at top of chart)
+            fig.update_layout(
+                title='Coinbase US App Store Ranking History',
+                xaxis_title='Date',
+                yaxis_title='App Store Rank',
+                yaxis=dict(
+                    autorange='reversed',  # This makes rank #1 at the top
+                    tickmode='array',
+                    tickvals=[1, 10, 50, 100, 150, 200],
+                    ticktext=['#1', '#10', '#50', '#100', '#150', '#200+']
+                ),
+                height=500,
+                hovermode='x unified'
+            )
+            
+            if len(dates) > 0:
+                # Add specific threshold lines for interpretation
+                fig.add_shape(type="line", x0=dates[0], x1=dates[-1], y0=10, y1=10,
+                              line=dict(color="red", width=1, dash="dash"),
+                              name="Extreme Interest")
+                
+                fig.add_shape(type="line", x0=dates[0], x1=dates[-1], y0=50, y1=50,
+                              line=dict(color="orange", width=1, dash="dash"),
+                              name="High Interest")
+                              
+                fig.add_shape(type="line", x0=dates[0], x1=dates[-1], y0=150, y1=150,
+                              line=dict(color="green", width=1, dash="dash"),
+                              name="Moderate Interest")
+                
+                # Add annotations for the thresholds
+                fig.add_annotation(x=dates[-1], y=5, text="Extreme Market Euphoria",
+                                  font=dict(color="red"), showarrow=False, xshift=10)
+                
+                fig.add_annotation(x=dates[-1], y=30, text="High Retail Interest",
+                                  font=dict(color="orange"), showarrow=False, xshift=10)
+                                  
+                fig.add_annotation(x=dates[-1], y=100, text="Moderate Interest",
+                                  font=dict(color="green"), showarrow=False, xshift=10)
+                                  
+                fig.add_annotation(x=dates[-1], y=175, text="Low Interest (Accumulation)",
+                                  font=dict(color="blue"), showarrow=False, xshift=10)
+            
+            # Display the chart
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Add interpretation text
+            st.markdown("""
+            #### Interpretation:
+            
+            This chart tracks Coinbase's ranking in the US App Store for free iPhone apps over time. 
+            
+            - **Top 10 (#1-10)**: Extreme retail interest, often indicating market euphoria and potential tops
+            - **Top 50 (#11-50)**: High retail interest, usually associated with strong bull markets
+            - **Top 150 (#51-150)**: Moderate interest, typically seen during normal bull market conditions
+            - **Below 150 (#150+)**: Low retail interest, often present during accumulation phases
+            
+            The Coinbase app ranking is a useful contrarian indicator as extreme retail interest often 
+            coincides with market tops, while very low interest can indicate good accumulation opportunities.
+            """)
+        else:
+            st.info("No historical Coinbase ranking data available yet. Data will accumulate over time as the tracker runs.")
+            st.info("Try updating the data using the button on the main dashboard, or visit again tomorrow.")
     
     with tab3:
         # Create a section for live AppFigures data
@@ -1102,11 +1186,6 @@ elif page == "CBBI Score":
             
             with tab3:
                 st.subheader("Official CBBI Chart from Colin Talks Crypto")
-                st.markdown("""
-                This is the official CBBI chart from [colintalkscrypto.com](https://colintalkscrypto.com/cbbi/). 
-                The Colin Talks Crypto Bitcoin Bull Run Index combines multiple indicators to estimate the current 
-                market cycle position.
-                """)
                 
                 # Embed the official CBBI chart from the website
                 components.iframe(
@@ -1115,12 +1194,18 @@ elif page == "CBBI Score":
                     scrolling=True
                 )
                 
-                st.markdown("""
-                *Source: [Colin Talks Crypto Bitcoin Bull Run Index](https://colintalkscrypto.com/cbbi/)*
+                # Attribution moved to the bottom
+                st.markdown("*Source: [Colin Talks Crypto Bitcoin Bull Run Index](https://colintalkscrypto.com/cbbi/)*")
                 
-                The CBBI chart represents a normalized score from 0 to 1, where:
-                - Values close to 1 indicate potential market tops (typically above 0.8)
-                - Values close to 0 indicate potential market bottoms (typically below 0.2)
+                # The explanatory text moved to the bottom per user request
+                st.markdown("""
+                #### About CBBI
+                
+                The Colin Talks Crypto Bitcoin Bull Run Index combines multiple indicators to estimate the current 
+                market cycle position. The CBBI chart represents a normalized score from 0 to 100, where:
+                
+                - Values close to 100 indicate potential market tops (typically above 80)
+                - Values close to 0 indicate potential market bottoms (typically below 20)
                 - Values in between suggest the market is in transition
                 """)
                 
@@ -1129,14 +1214,16 @@ elif page == "CBBI Score":
             
             # Analysis
             st.subheader("Current Analysis")
+            current_score_display = int(score*100) if score else 0
+            
             if score > 0.8:
-                st.error("⚠️ CBBI Score of 75 indicates increasing market optimism. Historically, scores above 80 have been seen near market tops.")
+                st.error(f"⚠️ CBBI Score of {current_score_display} indicates increasing market optimism. Historically, scores above 80 have been seen near market tops.")
             elif score > 0.6:
-                st.warning("🔍 CBBI Score of 75 shows increasing market optimism. Consider taking partial profits if the trend continues.")
+                st.warning(f"🔍 CBBI Score of {current_score_display} shows increasing market optimism. Consider taking partial profits if the trend continues.")
             elif score < 0.3:
-                st.success("✅ CBBI Score of 75 suggests we're in mid-cycle. Historically, scores below 30 are favorable for long-term entry.")
+                st.success(f"✅ CBBI Score of {current_score_display} suggests we're in mid-cycle. Historically, scores below 30 are favorable for long-term entry.")
             else:
-                st.info("🔄 CBBI Score of 75 is in the neutral range. The market is neither in fear nor greed territory.")
+                st.info(f"🔄 CBBI Score of {current_score_display} is in the neutral range. The market is neither in fear nor greed territory.")
         else:
             st.warning("Historical CBBI data not available.")
     else:
