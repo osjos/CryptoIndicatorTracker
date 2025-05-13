@@ -625,15 +625,81 @@ elif page == "Coinbase App Ranking":
         # Create a simplified custom chart focused only on Coinbase
         st.markdown("#### Coinbase App Store Ranking Over Time")
         
-        # Add a custom explanation about what we're simulating
-        st.info("""
-        This simplified view only shows a timeline of Coinbase's App Store ranking position.
+    with tab3:
+        # Create a section for live AppFigures data
+        st.subheader("Live App Store Rankings")
         
-        **Key insights:**
-        - When Coinbase reaches top 10 positions, it often correlates with market tops
-        - Lower rankings (>100) typically indicate less retail interest/FOMO
-        - The most significant signal is when Coinbase rapidly moves up the rankings
+        st.markdown("""
+        This tab shows real-time data from AppFigures.com, tracking free iPhone apps in the US App Store.
+        If Coinbase appears in the top charts, it indicates significant retail interest in cryptocurrency.
         """)
+        
+        # Display the current Coinbase ranking from our scraper
+        if 'coinbase_rank' in data and data['coinbase_rank'] is not None:
+            rank = data['coinbase_rank'].get('rank')
+            last_updated = data['coinbase_rank'].get('last_updated')
+            source = data['coinbase_rank'].get('source', 'AppFigures.com - US iPhone Free Apps')
+            
+            # Create metrics display
+            st.subheader("Coinbase Current Ranking")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Format the rank display properly
+                if isinstance(rank, str) and "+" in rank:
+                    display_rank = f"#{rank}"
+                else:
+                    display_rank = f"#{rank}" if rank else "N/A"
+                
+                st.metric(
+                    label="Current App Store Rank", 
+                    value=display_rank
+                )
+            
+            with col2:
+                st.metric(
+                    label="Last Updated", 
+                    value=last_updated if last_updated else "Unknown"
+                )
+            
+            # Add source info
+            st.caption(f"Source: {source}")
+            
+            # Display ranking interpretation
+            if isinstance(rank, str) and "+" in rank:
+                st.success("✅ Coinbase is currently outside the top 200 apps, suggesting very low retail interest in cryptocurrency at the moment.")
+            elif isinstance(rank, int):
+                if rank <= 10:
+                    st.error("🚨 Coinbase is in the top 10 apps, which historically indicates extreme market euphoria and possible market tops!")
+                elif rank <= 50:
+                    st.warning("⚠️ Coinbase is in the top 50 apps, showing high retail interest that often precedes local market tops.")
+                elif rank <= 150:
+                    st.info("ℹ️ Coinbase is in the top 150 apps, indicating moderate retail interest in cryptocurrency.")
+                else:
+                    st.success("✅ Coinbase is outside the top 150 apps, suggesting low retail interest typical of accumulation phases.")
+            
+            # Add the AppFigures iframe
+            st.markdown("### Browse Live App Store Rankings")
+            st.info("The iframe below shows real-time data from AppFigures.com. You can browse through the rankings to manually verify Coinbase's position.")
+            
+            # Embedded iframe with live AppFigures data
+            st.markdown("""
+            <iframe src="https://appfigures.com/top-apps/ios-app-store/united-states/iphone/top-free" 
+                    width="100%" height="600" frameborder="0"></iframe>
+            """, unsafe_allow_html=True)
+            
+        else:
+            st.warning("Could not retrieve current Coinbase ranking data. Please try updating the data.")
+            
+            # Still show the AppFigures embed even if our scraper failed
+            st.markdown("### Browse Live App Store Rankings")
+            st.info("The iframe below shows real-time data from AppFigures.com. You can browse to manually check Coinbase's position.")
+            
+            # Add the AppFigures iframe
+            st.markdown("""
+            <iframe src="https://appfigures.com/top-apps/ios-app-store/united-states/iphone/top-free" 
+                    width="100%" height="600" frameborder="0"></iframe>
+            """, unsafe_allow_html=True)
         
         # Create a simplified custom chart that shows Coinbase ranking
         import plotly.graph_objects as go
