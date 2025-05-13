@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 def get_coinbase_ranking(from_database=None):
     """
     Get Coinbase app ranking from App Store (US).
+    Scrapes AppFigures.com for free iPhone apps in the US market.
     
     Args:
         from_database: Optional database data to use instead of fetching new data
@@ -29,127 +30,118 @@ def get_coinbase_ranking(from_database=None):
             logger.info("Using Coinbase ranking data from database")
             return from_database
         
-        logger.info("Fetching Coinbase app ranking from App Store")
+        logger.info("Fetching Coinbase app ranking from AppFigures")
         
-        # Use SensorTower for app ranking data - specifically tracking Coinbase among free iPhone apps in the US
-        url = "https://sensortower.com/ios/us/coinbase-inc/app/coinbase-buy-bitcoin-ether/886427730/overview"
+        # Use AppFigures.com for app ranking data - specifically tracking top free iPhone apps in the US
+        url = "https://appfigures.com/top-apps/ios-app-store/united-states/iphone/top-overall"
         
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
         
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(url, headers=headers, timeout=15)
+        
+        coinbase_rank = None
         
         if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Look for Coinbase in the app listings
-            coinbase_rank = None
-            
-            # Use trafilatura to extract text content
+            # First try using trafilatura for cleaner text extraction
             try:
                 import trafilatura
                 downloaded = trafilatura.fetch_url(url)
                 content = trafilatura.extract(downloaded)
                 
-                # SensorTower typically shows ranking like "Overall: #246" for the app's position
                 if content:
-                    # Look for a pattern matching "Overall: #" followed by numbers
-                    import re
-                    matches = re.findall(r"Overall: #(\d+)", content)
-                    if matches:
-                        coinbase_rank = int(matches[0])
-                        logger.info(f"Found Coinbase overall rank: {coinbase_rank}")
-                    
-                    # Also look specifically for iPhone free app ranking in US
-                    matches = re.findall(r"Free iPhone Apps \(US\): #(\d+)", content)
-                    if matches:
-                        coinbase_rank = int(matches[0])
-                        logger.info(f"Found Coinbase iPhone free rank (US): {coinbase_rank}")
-            except ImportError:
-                logger.warning("Trafilatura not available, falling back to BeautifulSoup parsing")
-            
-            # Use BeautifulSoup as fallback
-            if not coinbase_rank:
-                # For SensorTower, look for ranking info in the page
-                # Look for ranking sections
-                import re
-                rank_sections = soup.find_all('div', string=re.compile(r'(Free iPhone Apps|Overall)'))
-                
-                for section in rank_sections:
-                    # Try to find a nearby rank number
-                    rank_text = section.parent.get_text()
-                    matches = re.findall(r'#(\d+)', rank_text)
-                    if matches:
-                        # Found a rank number, but prioritize iPhone free apps if available
-                        if 'Free iPhone Apps' in rank_text and 'US' in rank_text:
-                            coinbase_rank = int(matches[0])
-                            logger.info(f"Found iPhone free rank from BS: {coinbase_rank}")
-                            break
-                        elif 'Overall' in rank_text:
-                            coinbase_rank = int(matches[0])
-                            logger.info(f"Found overall rank from BS: {coinbase_rank}")
-                            
-                # Final fallback - look for a more general pattern
-                if not coinbase_rank:
-                    all_text = soup.get_text()
-                    matches = re.findall(r'#(\d+)', all_text)
-                    for match in matches:
-                        if match.isdigit():
-                            nearby_text = all_text[all_text.find(match)-50:all_text.find(match)+50]
-                            if 'rank' in nearby_text.lower() or 'position' in nearby_text.lower():
-                                coinbase_rank = int(match)
-                                logger.info(f"Found rank from text context: {coinbase_rank}")
+                    # Check if "Coinbase" appears in the content
+                    if "Coinbase" in content:
+                        # Create soup for more structured parsing
+                        soup = BeautifulSoup(response.text, 'html.parser')
+                        
+                        # Find all app entries
+                        app_entries = soup.find_all('div', class_=['app-card', 'app-row', 'app-item'])
+                        
+                        for i, entry in enumerate(app_entries):
+                            # Look for Coinbase in the app name or developer
+                            if "Coinbase" in entry.get_text():
+                                # AppFigures lists are 0-indexed, so add 1 for rank
+                                coinbase_rank = i + 1
+                                logger.info(f"Found Coinbase at rank {coinbase_rank}")
                                 break
+                        
+                        # If we didn't find it through structured parsing, try to find rank in context
+                        if not coinbase_rank:
+                            # Try to find rank near Coinbase mentions
+                            import re
+                            
+                            # Look for patterns like "#123 Coinbase" or "Coinbase #123"
+                            rank_patterns = re.findall(r'#(\d+)[^\d]*Coinbase|Coinbase[^\d]*#(\d+)', content)
+                            if rank_patterns:
+                                for pattern in rank_patterns:
+                                    # Each pattern is a tuple with two capture groups
+                                    # Check each group to see if it contains a number
+                                    for group in pattern:
+                                        if group.isdigit():
+                                            coinbase_rank = int(group)
+                                            logger.info(f"Found Coinbase from text rank: {coinbase_rank}")
+                                            break
+                    else:
+                        logger.info("Coinbase not found in the AppFigures top chart content")
+                        
+            except ImportError as e:
+                logger.warning(f"Trafilatura not available: {str(e)}, falling back to BeautifulSoup parsing")
             
-            # If scraping was unsuccessful, use 200+ as requested by the user
-            if coinbase_rank is None:
-                logger.warning("Could not find Coinbase rank, using 200+ as fallback value")
-                coinbase_rank = "200+"  # Using 200+ as fallback value
-                response_data = {
-                    'rank': coinbase_rank,  # Using 200+ string value
-                    'last_updated': datetime.now().strftime('%Y-%m-%d'),
-                    'history': [],
-                    'status': "Coinbase not found in top 200 apps"
-                }
-                logger.info(f"Returning fallback value: {coinbase_rank}")
-                return response_data
+            # Fallback to direct BeautifulSoup parsing if trafilatura didn't find it
+            if not coinbase_rank:
+                try:
+                    soup = BeautifulSoup(response.text, 'html.parser')
+                    
+                    # Find all app entries (adjust these selectors based on the actual page structure)
+                    app_entries = soup.find_all(['div', 'li', 'tr'], attrs={
+                        'class': lambda x: x and any(c in x for c in ['app-row', 'app-item', 'app-card', 'app-entry'])
+                    })
+                    
+                    # If no structured entries found, look for any elements containing "Coinbase"
+                    if not app_entries:
+                        app_entries = soup.find_all(lambda tag: tag.name in ['div', 'li', 'tr'] and 'Coinbase' in tag.get_text())
+                    
+                    for i, entry in enumerate(app_entries):
+                        if "Coinbase" in entry.get_text():
+                            # Get the rank, either from a specific element or by position in list
+                            rank_elem = entry.find(class_=['rank', 'position', 'number'])
+                            if rank_elem and rank_elem.text.strip().replace('#', '').isdigit():
+                                coinbase_rank = int(rank_elem.text.strip().replace('#', ''))
+                            else:
+                                # Fallback to position in list
+                                coinbase_rank = i + 1
+                            
+                            logger.info(f"Found Coinbase at rank {coinbase_rank} using BeautifulSoup")
+                            break
+                except Exception as parse_err:
+                    logger.error(f"BeautifulSoup parsing error: {str(parse_err)}")
+            
+            # If Coinbase not found in the results, set rank to "200+"
+            if not coinbase_rank:
+                logger.info("Coinbase not found in top chart, using 200+ as the rank")
+                coinbase_rank = "200+"
             
             # Create response with current data
             current_date = datetime.now().strftime('%Y-%m-%d')
             response_data = {
                 'rank': coinbase_rank,
                 'last_updated': current_date,
-                'history': []
+                'history': [],
+                'source': "AppFigures.com - US iPhone Free Apps"
             }
             
-            # For authentic historical data, we would need to pull from a database
-            # For now, we'll provide minimal history to indicate the trend
-            # This avoids misleading simulated data
+            if coinbase_rank == "200+":
+                response_data['status'] = "Coinbase not found in top 200 apps"
             
-            # Create a small historical dataset that reflects the current rank
-            # with minor variations to show a realistic trend
-            history = []
+            # For now, we'll keep a minimal history with just today's data
+            # This avoids misleading simulated historical data
+            history = [{
+                'date': current_date,
+                'rank': coinbase_rank
+            }]
             
-            # Generate 7 days of history (past week)
-            # Starting with today's value and varying it slightly for past days
-            current_rank = coinbase_rank
-            for i in range(7):
-                date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
-                # Small random variation (±5%) for previous days
-                if i > 0:
-                    # Ensure variation doesn't make rank go below 1
-                    rank_variation = max(1, current_rank + int(current_rank * np.random.uniform(-0.05, 0.05)))
-                else:
-                    rank_variation = current_rank
-                    
-                history.append({
-                    'date': date,
-                    'rank': rank_variation
-                })
-            
-            # Reverse to get chronological order
-            history.reverse()
             response_data['history'] = history
             
             logger.info(f"Coinbase current rank: {coinbase_rank}")
