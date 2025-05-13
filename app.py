@@ -99,14 +99,16 @@ def get_indicator_status(name, value, thresholds):
             return "Normal Interest", "green"
     
     elif name == "CBBI Score":
-        # For CBBI Score, interpret based on score value (0-1 scale in data)
-        # But display messages using 0-100 scale for consistency
+        # For CBBI Score, interpret based on score value
+        # CBBI Score is 0-1 scale in database but 0-100 in UI
+        value_display = int(value*100) if value else 0
+        
         if value > 0.8:
-            return "Near Top (>80)", "red"
+            return f"Near Top ({value_display}/100)", "red"
         elif value > 0.6:
-            return "Caution (>60)", "yellow"
+            return f"Caution ({value_display}/100)", "yellow"
         else:
-            return "Accumulation (<60)", "green"
+            return f"Accumulation ({value_display}/100)", "green"
     
     elif name == "Halving Cycle":
         # For Halving Cycle, interpret based on days after halving
