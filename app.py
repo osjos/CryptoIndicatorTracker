@@ -704,11 +704,6 @@ elif page == "Coinbase App Ranking":
         # Create a section for live AppFigures data
         st.subheader("Live App Store Rankings")
         
-        st.markdown("""
-        This tab shows real-time data from AppFigures.com, tracking free iPhone apps in the US App Store.
-        If Coinbase appears in the top charts, it indicates significant retail interest in cryptocurrency.
-        """)
-        
         # Display the current Coinbase ranking from our scraper
         if 'coinbase_rank' in data and data['coinbase_rank'] is not None:
             rank = data['coinbase_rank'].get('rank')
@@ -775,6 +770,19 @@ elif page == "Coinbase App Ranking":
             <iframe src="https://appfigures.com/top-apps/ios-app-store/united-states/iphone/top-free" 
                     width="100%" height="600" frameborder="0"></iframe>
             """, unsafe_allow_html=True)
+            
+            # Add explanation at the bottom
+            st.markdown("""
+            ### About App Store Rankings
+            
+            This tab shows real-time data from AppFigures.com, tracking free iPhone apps in the US App Store.
+            If Coinbase appears in the top charts, it indicates significant retail interest in cryptocurrency.
+            
+            Historically, Coinbase's App Store ranking has been a useful indicator of market cycles:
+            - **Top 10 ranking**: Often coincides with market euphoria and potential tops
+            - **Top 10-50**: Shows elevated retail interest, may indicate local tops
+            - **Outside top 150**: Typically seen during accumulation phases
+            """)
         
 
         
@@ -916,7 +924,11 @@ elif page == "Coinbase App Ranking":
     
     # Add a custom Coinbase-focused analysis section
     st.markdown("""
-    ### Coinbase Ranking Analysis
+    ### Coinbase Ranking Explanation
+    
+    This tracker monitors Coinbase's position in the US App Store free iPhone apps rankings. 
+    When Coinbase appears in the top charts (especially top 10-50), it indicates significant 
+    retail interest in cryptocurrency, which has historically coincided with market cycle peaks.
     
     The chart above from The Block shows App Store rankings for major crypto apps including Coinbase. 
     Historically, when Coinbase rises to the top positions (ranks 1-10), it often coincides with 
