@@ -939,59 +939,6 @@ elif page == "Coinbase App Ranking":
     
     # Add a divider
     st.markdown("---")
-    
-    # Get Coinbase Ranking data from our own scraper (as a backup/additional data point)
-    st.subheader("Additional Data")
-    
-    if 'coinbase_rank' in data and data['coinbase_rank'] is not None:
-        # Display current rank
-        rank = data['coinbase_rank'].get('rank')
-        status, color = get_indicator_status("Coinbase Rank", rank, [5, 50])
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            # Format the rank display properly (handling string values like "200+")
-            if isinstance(rank, str) and "+" in rank:
-                # Already formatted with + sign
-                display_rank = f"#{rank}"
-            else:
-                display_rank = f"#{rank}" if rank else "N/A"
-                
-            st.metric(
-                label="Current App Store Rank", 
-                value=display_rank
-            )
-            st.markdown(f"<h3 style='color:{color}'>{status}</h3>", unsafe_allow_html=True)
-        
-        with col2:
-            last_updated = data['coinbase_rank'].get('last_updated')
-            st.metric(
-                label="Last Updated", 
-                value=last_updated
-            )
-        
-        # Analysis
-        st.subheader("Current Analysis")
-        
-        # Check if rank is a string with "+" (like "200+")
-        if isinstance(rank, str) and "+" in rank:
-            st.success("✅ Coinbase app ranking is outside the top charts (200+), suggesting no excessive retail interest or market euphoria.")
-        else:
-            # Convert to numeric for comparison if it's a string number
-            try:
-                numeric_rank = float(rank) if isinstance(rank, str) else rank
-                if numeric_rank <= 10:
-                    st.error("⚠️ Coinbase is in the top 10 apps, which historically has coincided with market tops. This suggests extreme retail interest.")
-                elif numeric_rank <= 50:
-                    st.warning("🔍 Coinbase ranking shows elevated retail interest. Monitor closely as it might signal increasing market euphoria.")
-                else:
-                    st.success("✅ Coinbase app ranking is at a normal level, suggesting no excessive retail interest or market euphoria.")
-            except (ValueError, TypeError):
-                # If conversion fails, assume it's a high rank
-                st.success("✅ Coinbase app ranking appears to be at a normal level, suggesting no excessive retail interest or market euphoria.")
-    else:
-        # Even if our scraper fails, we still have The Block's chart
-        st.info("Our internal data collector couldn't retrieve the current Coinbase app rank. Please refer to The Block's chart above for the most current data.")
 
 # CBBI Score page
 elif page == "CBBI Score":
