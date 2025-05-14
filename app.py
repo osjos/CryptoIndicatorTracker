@@ -1025,28 +1025,28 @@ elif page == "CBBI Score":
                 ))
                 
                 # Add threshold lines if we have data
-                if dates:
+                if display_dates:
                     fig_daily.add_shape(
                         type="line",
-                        x0=min(dates),
+                        x0=min(display_dates),
                         y0=80,
-                        x1=max(dates),
+                        x1=max(display_dates),
                         y1=80,
                         line=dict(color="red", width=2, dash="dash")
                     )
                     
                     fig_daily.add_shape(
                         type="line",
-                        x0=min(dates),
+                        x0=min(display_dates),
                         y0=20,
-                        x1=max(dates),
+                        x1=max(display_dates),
                         y1=20,
                         line=dict(color="green", width=2, dash="dash")
                     )
                 
                 # Layout
                 fig_daily.update_layout(
-                    title="Daily CBBI Score Tracking",
+                    title="Daily CBBI Score Tracking (May 2025)",
                     xaxis_title="Date",
                     yaxis_title="CBBI Score",
                     height=500,
@@ -1055,6 +1055,12 @@ elif page == "CBBI Score":
                         tickmode="linear",
                         tick0=0,
                         dtick=10
+                    ),
+                    # Improve date formatting on x-axis
+                    xaxis=dict(
+                        tickformat="%Y-%m-%d",
+                        title_font=dict(size=12),
+                        tickfont=dict(size=10)
                     )
                 )
                 
