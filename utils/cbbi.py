@@ -32,23 +32,23 @@ def get_cbbi_data(from_database=None):
             
         logger.info("Fetching CBBI score data")
         
-        # Get CBBI score - first try to scrape from official website, then calculate if that fails
-        cbbi_score = 0.75  # Current value as of May 2025
+        # Get CBBI score - first try to scrape from official JSON API, then calculate if that fails
+        cbbi_score = 0.76  # Current value as of May 2025 is approximately 0.76 (76%)
         try:
-            # Try to get the score from the official website first
+            # Try to get the score from the official API first
             official_score = scrape_official_cbbi_score()
             if official_score is not None:
                 cbbi_score = official_score
-                logger.info(f"Using official CBBI score from website: {cbbi_score}")
+                logger.info(f"Using official CBBI score from API: {cbbi_score}")
             else:
-                # Fall back to our calculation if scraping fails
+                # Fall back to our calculation if API fails
                 calculated_score = calculate_approximate_cbbi()
                 if calculated_score is not None:
                     cbbi_score = calculated_score
                 logger.info(f"Using calculated CBBI score: {cbbi_score}")
         except Exception as e:
             logger.error(f"Error obtaining CBBI score: {str(e)}")
-            # Keep the default value of 0.75
+            # Keep the default value of 0.76
         
         # Current date
         current_date = datetime.now().strftime('%Y-%m-%d')
@@ -129,14 +129,14 @@ def get_cbbi_data(from_database=None):
 
 def scrape_official_cbbi_score():
     """
-    Scrape the current CBBI score from the official website.
+    Get the current CBBI score from the official JSON API endpoint.
     
     Returns:
-        The current CBBI score as a float between 0 and 1, or None if scraping fails
+        The current CBBI score as a float between 0 and 1, or None if fetching fails
     """
     try:
-        logger.info("Attempting to scrape CBBI score from official website")
-        url = "https://colintalkscrypto.com/cbbi/"
+        logger.info("Fetching CBBI score from official JSON API")
+        url = "https://colintalkscrypto.com/cbbi/data/latest.json"
         
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -145,37 +145,39 @@ def scrape_official_cbbi_score():
         response = requests.get(url, headers=headers)
         
         if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Looking for the CBBI score displayed on the page
-            # This might need adjustment if the website structure changes
-            score_div = soup.find('div', class_='cbbi-index')
-            
-            if score_div:
-                # Extract the score text and convert to float
-                score_text = score_div.text.strip()
-                # Remove any non-numeric characters except decimal point
-                score_text = ''.join(c for c in score_text if c.isdigit() or c == '.')
+            try:
+                # Parse the JSON response
+                data = response.json()
                 
-                if score_text:
-                    score = float(score_text)
-                    # Normalize to 0-1 range if necessary
-                    if score > 1:
-                        score = score / 100
+                # Check if the Confidence data is available
+                if 'Confidence' in data:
+                    # Get the timestamps and sort them
+                    timestamps = sorted(data['Confidence'].keys())
                     
-                    logger.info(f"Successfully scraped CBBI score: {score}")
-                    return score
-            
-            # If we couldn't find the score in the expected format, try looking for it elsewhere
-            # The score might be in a different element or format
-            logger.warning("Couldn't find CBBI score in expected format, falling back to hardcoded value")
-            return 0.75  # Current score as of May 2025 is approximately 0.75
+                    if timestamps:
+                        # Get the most recent timestamp
+                        latest_timestamp = timestamps[-1]
+                        
+                        # Get the score for the latest timestamp
+                        score = float(data['Confidence'][latest_timestamp])
+                        
+                        logger.info(f"Successfully fetched CBBI score from API: {score}")
+                        return score
+                    else:
+                        logger.warning("No timestamps found in Confidence data")
+                else:
+                    logger.warning("'Confidence' key not found in API response")
+            except (ValueError, KeyError) as e:
+                logger.error(f"Error parsing JSON response: {str(e)}")
         else:
-            logger.warning(f"Failed to retrieve CBBI website: {response.status_code}")
-            return None
+            logger.warning(f"Failed to retrieve CBBI data from API: {response.status_code}")
+        
+        # Fallback to alternate methods if JSON API fails
+        logger.warning("Falling back to alternate score calculation")
+        return None
     
     except Exception as e:
-        logger.error(f"Error scraping CBBI score: {str(e)}")
+        logger.error(f"Error fetching CBBI score from API: {str(e)}")
         return None
 
 def calculate_approximate_cbbi():
@@ -313,8 +315,8 @@ def calculate_approximate_cbbi():
         
     except Exception as e:
         logger.error(f"Error calculating approximate CBBI: {str(e)}")
-        # Return a default mid-range value if calculation fails
-        return 0.5
+        # Return the current known value if calculation fails
+        return 0.76  # Current value as of May 2025
 
 if __name__ == "__main__":
     # Test the function

@@ -7,6 +7,7 @@ from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import sqlite3
 import os
+import atexit
 
 # Import custom modules for indicators
 from utils.mag7_btc import get_mag7_btc_data
@@ -15,6 +16,12 @@ from utils.app_store import get_coinbase_ranking
 from utils.cbbi import get_cbbi_data
 from utils.halving_tracker import get_halving_data
 from data_manager import update_database, get_latest_data, get_historical_coinbase_rankings
+from scheduler import start_scheduler, stop_scheduler
+
+# Start the background scheduler to keep data updated
+start_scheduler()
+# Register a function to stop the scheduler when the application exits
+atexit.register(stop_scheduler)
 
 # Page configuration
 st.set_page_config(
