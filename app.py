@@ -15,7 +15,7 @@ from utils.pi_cycle import get_pi_cycle_data
 from utils.app_store import get_coinbase_ranking
 from utils.cbbi import get_cbbi_data
 from utils.halving_tracker import get_halving_data
-from data_manager import update_database, get_latest_data, get_historical_coinbase_rankings
+from data_manager import update_database, get_latest_data, get_historical_coinbase_rankings, get_historical_cbbi_scores
 from scheduler import start_scheduler, stop_scheduler
 
 # Start the background scheduler to keep data updated
@@ -951,10 +951,6 @@ elif page == "Coinbase App Ranking":
 elif page == "CBBI Score":
     st.header("CBBI (Colin Talks Crypto Bitcoin Index) Score")
     
-
-    
-
-    
     # Get CBBI data
     if 'cbbi' in data and data['cbbi'] is not None:
         # Display current score
@@ -976,64 +972,151 @@ elif page == "CBBI Score":
                 value=last_updated
             )
         
-        # Create the chart
-        if 'history' in data['cbbi'] and data['cbbi']['history']:
-            history = data['cbbi']['history']
-            dates = [item['date'] for item in history]
-            scores = [item['score'] * 100 for item in history]
-            btc_prices = [item['btc_price'] for item in history]
+        # Create tabs for different views
+        tab1, tab2, tab3, tab4 = st.tabs(["Daily Recorded CBBI", "Historical CBBI Chart", "CBBI vs BTC Price", "Official CBBI Chart"])
+        
+        with tab1:
+            # Retrieve historical daily CBBI scores from our database
+            st.subheader("Daily CBBI Score History")
             
-            # Main CBBI chart
-            fig = go.Figure()
+            # Get recorded data from database
+            historical_scores = get_historical_cbbi_scores(days=90)  # Default to 90 days
             
-            # Add score line
-            fig.add_trace(go.Scatter(
-                x=dates,
-                y=scores,
-                name="CBBI Score",
-                line=dict(color='blue', width=2)
-            ))
-            
-            # Add threshold lines
-            fig.add_shape(
-                type="line",
-                x0=min(dates),
-                y0=80,
-                x1=max(dates),
-                y1=80,
-                line=dict(color="red", width=2, dash="dash")
-            )
-            
-            fig.add_shape(
-                type="line",
-                x0=min(dates),
-                y0=20,
-                x1=max(dates),
-                y1=20,
-                line=dict(color="green", width=2, dash="dash")
-            )
-            
-            # Layout
-            fig.update_layout(
-                title="CBBI Score Over Time",
-                xaxis_title="Date",
-                yaxis_title="CBBI Score",
-                height=500,
-                yaxis=dict(
-                    range=[0, 100],
-                    tickmode="linear",
-                    tick0=0,
-                    dtick=10
+            if historical_scores:
+                # Convert dates and scores for plotting
+                dates = [item['date'] for item in historical_scores]
+                scores = [item['score'] * 100 for item in historical_scores]
+                
+                # Sort by date (oldest first for the chart)
+                dates_scores = sorted(zip(dates, scores), key=lambda x: x[0])
+                dates = [d for d, s in dates_scores]
+                scores = [s for d, s in dates_scores]
+                
+                # Create CBBI daily history chart
+                fig_daily = go.Figure()
+                
+                # Add score line
+                fig_daily.add_trace(go.Scatter(
+                    x=dates,
+                    y=scores,
+                    name="Daily CBBI Score",
+                    line=dict(color='blue', width=2)
+                ))
+                
+                # Add threshold lines if we have data
+                if dates:
+                    fig_daily.add_shape(
+                        type="line",
+                        x0=min(dates),
+                        y0=80,
+                        x1=max(dates),
+                        y1=80,
+                        line=dict(color="red", width=2, dash="dash")
+                    )
+                    
+                    fig_daily.add_shape(
+                        type="line",
+                        x0=min(dates),
+                        y0=20,
+                        x1=max(dates),
+                        y1=20,
+                        line=dict(color="green", width=2, dash="dash")
+                    )
+                
+                # Layout
+                fig_daily.update_layout(
+                    title="Daily CBBI Score Tracking",
+                    xaxis_title="Date",
+                    yaxis_title="CBBI Score",
+                    height=500,
+                    yaxis=dict(
+                        range=[0, 100],
+                        tickmode="linear",
+                        tick0=0,
+                        dtick=10
+                    )
                 )
-            )
-            
-            # Create tabs for different views
-            tab1, tab2, tab3 = st.tabs(["CBBI Chart", "CBBI vs BTC Price", "Official CBBI Chart"])
-            
-            with tab1:
+                
+                st.plotly_chart(fig_daily, use_container_width=True)
+                
+                # Data table
+                st.subheader("Recent CBBI Score Data")
+                df = pd.DataFrame(historical_scores)
+                df['date'] = pd.to_datetime(df['date'])
+                df = df.sort_values(by='date', ascending=False)
+                df['score'] = df['score'] * 100  # Convert to percentage
+                df['score'] = df['score'].round(2)  # Round to 2 decimal places
+                df = df.rename(columns={'date': 'Date', 'score': 'CBBI Score'})
+                st.dataframe(df, use_container_width=True)
+                
+                st.info("This data is automatically collected and stored daily at 6 AM Stockholm time.")
+            else:
+                st.warning("No daily CBBI score history is available yet. Data will accumulate as the scheduler collects daily readings.")
+                
+        with tab2:
+            # Create the chart with historical data from the CBBI module
+            if 'history' in data['cbbi'] and data['cbbi']['history']:
+                history = data['cbbi']['history']
+                dates = [item['date'] for item in history]
+                scores = [item['score'] * 100 for item in history]
+                btc_prices = [item['btc_price'] for item in history]
+                
+                # Main CBBI chart
+                fig = go.Figure()
+                
+                # Add score line
+                fig.add_trace(go.Scatter(
+                    x=dates,
+                    y=scores,
+                    name="CBBI Score",
+                    line=dict(color='blue', width=2)
+                ))
+                
+                # Add threshold lines
+                fig.add_shape(
+                    type="line",
+                    x0=min(dates),
+                    y0=80,
+                    x1=max(dates),
+                    y1=80,
+                    line=dict(color="red", width=2, dash="dash")
+                )
+                
+                fig.add_shape(
+                    type="line",
+                    x0=min(dates),
+                    y0=20,
+                    x1=max(dates),
+                    y1=20,
+                    line=dict(color="green", width=2, dash="dash")
+                )
+                
+                # Layout
+                fig.update_layout(
+                    title="CBBI Score Over Time",
+                    xaxis_title="Date",
+                    yaxis_title="CBBI Score",
+                    height=500,
+                    yaxis=dict(
+                        range=[0, 100],
+                        tickmode="linear",
+                        tick0=0,
+                        dtick=10
+                    )
+                )
+                
                 st.plotly_chart(fig, use_container_width=True)
-            
-            with tab2:
+            else:
+                st.warning("Historical CBBI data not available.")
+        
+        with tab3:
+            # BTC price vs CBBI chart
+            if 'history' in data['cbbi'] and data['cbbi']['history']:
+                history = data['cbbi']['history']
+                dates = [item['date'] for item in history]
+                scores = [item['score'] * 100 for item in history]
+                btc_prices = [item['btc_price'] for item in history]
+                
                 # BTC price with CBBI overlays
                 fig2 = make_subplots(specs=[[{"secondary_y": True}]])
                 
@@ -1077,49 +1160,49 @@ elif page == "CBBI Score":
                 )
                 
                 st.plotly_chart(fig2, use_container_width=True)
-            
-            with tab3:
-                st.subheader("Official CBBI Chart from Colin Talks Crypto")
-                
-                # Embed the official CBBI chart from the website
-                components.iframe(
-                    src="https://colintalkscrypto.com/cbbi/",
-                    height=600,
-                    scrolling=True
-                )
-                
-                # Attribution moved to the bottom
-                st.markdown("*Source: [Colin Talks Crypto Bitcoin Bull Run Index](https://colintalkscrypto.com/cbbi/)*")
-                
-                # The explanatory text moved to the bottom per user request
-                st.markdown("""
-                #### About CBBI
-                
-                The Colin Talks Crypto Bitcoin Bull Run Index combines multiple indicators to estimate the current 
-                market cycle position. The CBBI chart represents a normalized score from 0 to 100, where:
-                
-                - Values close to 100 indicate potential market tops (typically above 80)
-                - Values close to 0 indicate potential market bottoms (typically below 20)
-                - Values in between suggest the market is in transition
-                """)
-                
-                # Add attribution and explanation
-                st.info("The official CBBI combines 8 different indicators to create a comprehensive view of the market cycle.")
-            
-            # Analysis
-            st.subheader("Current Analysis")
-            current_score_display = int(score*100) if score else 0
-            
-            if score > 0.8:
-                st.error(f"⚠️ CBBI Score of {current_score_display} indicates increasing market optimism. Historically, scores above 80 have been seen near market tops.")
-            elif score > 0.6:
-                st.warning(f"🔍 CBBI Score of {current_score_display} shows increasing market optimism. Consider taking partial profits if the trend continues.")
-            elif score < 0.3:
-                st.success(f"✅ CBBI Score of {current_score_display} suggests we're in mid-cycle. Historically, scores below 30 are favorable for long-term entry.")
             else:
-                st.info(f"🔄 CBBI Score of {current_score_display} is in the neutral range. The market is neither in fear nor greed territory.")
+                st.warning("Historical BTC price and CBBI data not available.")
+        
+        with tab4:
+            st.subheader("Official CBBI Chart from Colin Talks Crypto")
+            
+            # Embed the official CBBI chart from the website
+            components.iframe(
+                src="https://colintalkscrypto.com/cbbi/",
+                height=600,
+                scrolling=True
+            )
+            
+            # Attribution moved to the bottom
+            st.markdown("*Source: [Colin Talks Crypto Bitcoin Bull Run Index](https://colintalkscrypto.com/cbbi/)*")
+            
+            # The explanatory text moved to the bottom per user request
+            st.markdown("""
+            #### About CBBI
+            
+            The Colin Talks Crypto Bitcoin Bull Run Index combines multiple indicators to estimate the current 
+            market cycle position. The CBBI chart represents a normalized score from 0 to 100, where:
+            
+            - Values close to 100 indicate potential market tops (typically above 80)
+            - Values close to 0 indicate potential market bottoms (typically below 20)
+            - Values in between suggest the market is in transition
+            """)
+            
+            # Add attribution and explanation
+            st.info("The official CBBI combines 8 different indicators to create a comprehensive view of the market cycle.")
+        
+        # Analysis
+        st.subheader("Current Analysis")
+        current_score_display = int(score*100) if score else 0
+        
+        if score > 0.8:
+            st.error(f"⚠️ CBBI Score of {current_score_display} indicates increasing market optimism. Historically, scores above 80 have been seen near market tops.")
+        elif score > 0.6:
+            st.warning(f"🔍 CBBI Score of {current_score_display} shows increasing market optimism. Consider taking partial profits if the trend continues.")
+        elif score < 0.3:
+            st.success(f"✅ CBBI Score of {current_score_display} suggests we're in mid-cycle. Historically, scores below 30 are favorable for long-term entry.")
         else:
-            st.warning("Historical CBBI data not available.")
+            st.info(f"🔄 CBBI Score of {current_score_display} is in the neutral range. The market is neither in fear nor greed territory.")
     else:
         st.warning("CBBI data not available. Please update the data.")
         
