@@ -6,7 +6,9 @@ from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime
 import pytz
+import sqlite3
 from data_manager import update_database
+from utils.cbbi import scrape_official_cbbi_score  # Import the CBBI scraper
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -43,9 +45,20 @@ def start_scheduler():
                 replace_existing=True
             )
             
+            # Add a dedicated CBBI score update job to run every 6 hours
+            # This ensures we capture intraday changes to the CBBI score
+            scheduler.add_job(
+                func=scheduled_update_cbbi_score,
+                trigger=IntervalTrigger(hours=6),
+                id='cbbi_score_update_job',
+                name='CBBI Score Update Every 6 Hours',
+                replace_existing=True
+            )
+            
             # Start the scheduler
             scheduler.start()
             logger.info("Scheduler started successfully with daily update at 6 AM Stockholm time")
+            logger.info("CBBI score will be updated every 6 hours")
             
             # Run an initial update to ensure we have fresh data
             scheduled_update_database()
@@ -79,6 +92,67 @@ def scheduled_update_database():
         logger.info(f"Scheduled database update completed successfully at {now_stockholm.strftime('%Y-%m-%d %H:%M:%S')} Stockholm time")
     except Exception as e:
         logger.error(f"Error in scheduled database update: {str(e)}")
+
+def scheduled_update_cbbi_score():
+    """
+    Function to update just the CBBI score in the database.
+    This allows for more frequent updates of this critical value.
+    """
+    try:
+        # Get current time in Stockholm timezone for logging
+        stockholm_tz = pytz.timezone('Europe/Stockholm')
+        now_stockholm = datetime.now(pytz.UTC).astimezone(stockholm_tz)
+        
+        logger.info(f"Running CBBI score update at {now_stockholm.strftime('%Y-%m-%d %H:%M:%S')} Stockholm time")
+        
+        # Scrape the latest CBBI score from the official website
+        cbbi_score = scrape_official_cbbi_score()
+        
+        if cbbi_score is not None:
+            # Convert to decimal if needed
+            if cbbi_score > 1:
+                cbbi_score = cbbi_score / 100.0
+                
+            # Store in database
+            conn = sqlite3.connect('crypto_tracker.db')
+            cursor = conn.cursor()
+            
+            # Current date and timestamp
+            current_date = datetime.now().strftime('%Y-%m-%d')
+            current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Check if we already have an entry for today
+            cursor.execute("SELECT id FROM daily_cbbi_scores WHERE date = ?", (current_date,))
+            existing_entry = cursor.fetchone()
+            
+            if existing_entry:
+                # Update existing entry
+                cursor.execute(
+                    "UPDATE daily_cbbi_scores SET score = ?, timestamp = ? WHERE date = ?",
+                    (cbbi_score, current_timestamp, current_date)
+                )
+                logger.info(f"Updated CBBI score for {current_date}: {cbbi_score:.2f} ({int(cbbi_score*100)}%)")
+            else:
+                # Insert new entry
+                cursor.execute(
+                    "INSERT INTO daily_cbbi_scores (date, score, timestamp) VALUES (?, ?, ?)",
+                    (current_date, cbbi_score, current_timestamp)
+                )
+                logger.info(f"Inserted new CBBI score for {current_date}: {cbbi_score:.2f} ({int(cbbi_score*100)}%)")
+            
+            conn.commit()
+            conn.close()
+            
+            # Log the completion with Stockholm time
+            now_stockholm = datetime.now(pytz.UTC).astimezone(stockholm_tz)
+            logger.info(f"CBBI score update completed successfully at {now_stockholm.strftime('%Y-%m-%d %H:%M:%S')} Stockholm time")
+        else:
+            logger.warning("Could not retrieve CBBI score, update skipped")
+            
+    except Exception as e:
+        logger.error(f"Error updating CBBI score: {str(e)}")
+        if 'conn' in locals():
+            conn.close()
 
 if __name__ == "__main__":
     # Test the scheduler
