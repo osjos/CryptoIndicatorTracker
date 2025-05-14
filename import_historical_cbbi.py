@@ -25,26 +25,26 @@ def import_historical_cbbi_data():
         # to avoid duplicates
         cursor.execute("""
             DELETE FROM daily_cbbi_scores 
-            WHERE date BETWEEN '2025-04-01' AND '2025-05-14'
+            WHERE date BETWEEN '2025-05-01' AND '2025-05-14'
         """)
         
         # Historical data in format YYYYMMDD and score (as percentage)
         historical_data = [
-            ("20250401", 72),
-            ("20250402", 74),
-            ("20250403", 74),
-            ("20250404", 72),
-            ("20250405", 73),
-            ("20250406", 73),
-            ("20250407", 73),
-            ("20250408", 74),
-            ("20250409", 75),
-            ("20250410", 76),
-            ("20250411", 76),
-            ("20250412", 76),
-            ("20250413", 75),
-            # Continue with current data we've collected since the 14th
-            ("20250414", 76),
+            ("20250501", 72),
+            ("20250502", 74),
+            ("20250503", 74),
+            ("20250504", 72),
+            ("20250505", 73),
+            ("20250506", 73),
+            ("20250507", 73),
+            ("20250508", 74),
+            ("20250509", 75),
+            ("20250510", 76),
+            ("20250511", 76),
+            ("20250512", 76),
+            ("20250513", 75),
+            # Today's value (May 14th)
+            ("20250514", 76),
         ]
         
         # Current timestamp (for all records)
