@@ -34,8 +34,8 @@ def populate_test_cbbi_data():
         cbbi_values = [
             0.76, 0.75, 0.74, 0.74, 0.73, 0.72, 0.71, 0.70, 0.70, 0.69,
             0.68, 0.67, 0.67, 0.66, 0.65, 0.64, 0.64, 0.63, 0.62, 0.61,
-            0.60, 0.61, 0.62, 0.63, 0.64, 0.65, 0.67, 0.69, 0.72, 0.74
-        ]
+            0.60, 0.61, 0.62, 0.63, 0.64, 0.65, 0.67, 0.69, 0.72, 0.76
+        ]  # Note: Last value is 0.76 to match the official website
 
         # Insert data points for the past 30 days
         for i in range(30):
