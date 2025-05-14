@@ -221,8 +221,18 @@ def get_historical_cbbi_scores(days=90):
         
         if results:
             for date_str, score in results:
+                # Convert date string to proper date format if needed
+                try:
+                    # First try to parse the date string
+                    date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+                    # Format date as YYYY-MM-DD for consistency
+                    formatted_date = date_obj.strftime('%Y-%m-%d')
+                except (ValueError, TypeError):
+                    # If parsing fails, use the original string
+                    formatted_date = date_str
+                
                 historical_data.append({
-                    'date': date_str,
+                    'date': formatted_date,
                     'score': score
                 })
         

@@ -984,7 +984,20 @@ elif page == "CBBI Score":
             
             if historical_scores:
                 # Convert dates and scores for plotting
-                dates = [item['date'] for item in historical_scores]
+                dates = []
+                for item in historical_scores:
+                    # Ensure dates are in proper datetime format
+                    if isinstance(item['date'], str):
+                        try:
+                            # Parse the date string to datetime object
+                            date_obj = datetime.strptime(item['date'], '%Y-%m-%d')
+                            dates.append(date_obj)
+                        except ValueError:
+                            # If parsing fails, just use the string
+                            dates.append(item['date'])
+                    else:
+                        dates.append(item['date'])
+                
                 scores = [item['score'] * 100 for item in historical_scores]
                 
                 # Sort by date (oldest first for the chart)
@@ -995,9 +1008,17 @@ elif page == "CBBI Score":
                 # Create CBBI daily history chart
                 fig_daily = go.Figure()
                 
+                # Format dates for display if they're datetime objects
+                display_dates = []
+                for date in dates:
+                    if isinstance(date, datetime):
+                        display_dates.append(date.strftime('%Y-%m-%d'))
+                    else:
+                        display_dates.append(date)
+                
                 # Add score line
                 fig_daily.add_trace(go.Scatter(
-                    x=dates,
+                    x=display_dates,
                     y=scores,
                     name="Daily CBBI Score",
                     line=dict(color='blue', width=2)
@@ -1042,11 +1063,24 @@ elif page == "CBBI Score":
                 # Data table
                 st.subheader("Recent CBBI Score Data")
                 df = pd.DataFrame(historical_scores)
+                
+                # First ensure we have date in correct format
                 df['date'] = pd.to_datetime(df['date'])
+                
+                # Sort by date (descending for table display)
                 df = df.sort_values(by='date', ascending=False)
+                
+                # Format for display
                 df['score'] = df['score'] * 100  # Convert to percentage
                 df['score'] = df['score'].round(2)  # Round to 2 decimal places
+                
+                # Format the date column to show May dates clearly
+                df['date'] = df['date'].dt.strftime('%Y-%m-%d')
+                
+                # Rename columns for display
                 df = df.rename(columns={'date': 'Date', 'score': 'CBBI Score'})
+                
+                # Display the table
                 st.dataframe(df, use_container_width=True)
                 
                 st.info("This data is automatically collected and stored daily at 6 AM Stockholm time.")
