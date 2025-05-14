@@ -69,6 +69,16 @@ def init_database():
         )
         ''')
         
+        # Create a dedicated table for daily CBBI scores
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS daily_cbbi_scores (
+            id INTEGER PRIMARY KEY,
+            date TEXT UNIQUE NOT NULL,
+            score REAL NOT NULL,
+            timestamp TEXT NOT NULL
+        )
+        ''')
+        
         conn.commit()
         conn.close()
         logger.info("Database initialized successfully")
@@ -91,8 +101,9 @@ def update_database():
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         
-        # Current date for all updates
+        # Current date and timestamp for all updates
         current_date = datetime.now().strftime('%Y-%m-%d')
+        current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         # Update MAG7-BTC data
         mag7_btc_data = get_mag7_btc_data()
@@ -125,6 +136,32 @@ def update_database():
                 "INSERT OR REPLACE INTO cbbi (date, data) VALUES (?, ?)",
                 (current_date, json.dumps(cbbi_data))
             )
+            
+            # Also update the daily CBBI scores table
+            # Extract the score from the CBBI data
+            cbbi_score = cbbi_data.get('score', None)
+            if cbbi_score is not None:
+                try:
+                    # Check if we already have an entry for today
+                    cursor.execute("SELECT id FROM daily_cbbi_scores WHERE date = ?", (current_date,))
+                    existing_entry = cursor.fetchone()
+                    
+                    if existing_entry:
+                        # Update existing entry
+                        cursor.execute(
+                            "UPDATE daily_cbbi_scores SET score = ?, timestamp = ? WHERE date = ?",
+                            (cbbi_score, current_timestamp, current_date)
+                        )
+                        logger.info(f"Updated CBBI score for {current_date}: {cbbi_score}")
+                    else:
+                        # Insert new entry
+                        cursor.execute(
+                            "INSERT INTO daily_cbbi_scores (date, score, timestamp) VALUES (?, ?, ?)",
+                            (current_date, cbbi_score, current_timestamp)
+                        )
+                        logger.info(f"Inserted new CBBI score for {current_date}: {cbbi_score}")
+                except Exception as e:
+                    logger.error(f"Error updating daily CBBI score: {str(e)}")
         
         # Update halving cycle data
         halving_data = get_halving_data()
@@ -141,6 +178,53 @@ def update_database():
     except Exception as e:
         logger.error(f"Error updating database: {str(e)}")
         return False
+
+def get_historical_cbbi_scores(days=90):
+    """
+    Retrieve historical CBBI scores from the database.
+    
+    Args:
+        days: Number of days of history to retrieve (default 90 days)
+        
+    Returns:
+        List of dictionaries containing date and score for each recorded entry
+    """
+    try:
+        # Check if database exists
+        if not os.path.exists(DB_PATH):
+            logger.info("Database does not exist for historical CBBI scores")
+            return []
+        
+        # Connect to database
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Get CBBI scores ordered by date
+        # Limit to the specified number of days if requested
+        if days:
+            cursor.execute(
+                "SELECT date, score FROM daily_cbbi_scores ORDER BY date DESC LIMIT ?",
+                (days,)
+            )
+        else:
+            cursor.execute("SELECT date, score FROM daily_cbbi_scores ORDER BY date ASC")
+            
+        results = cursor.fetchall()
+        
+        historical_data = []
+        
+        if results:
+            for date_str, score in results:
+                historical_data.append({
+                    'date': date_str,
+                    'score': score
+                })
+        
+        conn.close()
+        return historical_data
+    except Exception as e:
+        logger.error(f"Error retrieving historical CBBI scores: {str(e)}")
+        return []
 
 def get_historical_coinbase_rankings():
     """
