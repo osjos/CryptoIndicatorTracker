@@ -25,22 +25,9 @@ def get_cbbi_data(from_database=None):
         Dictionary containing CBBI score data
     """
     try:
-        # If database data is provided, use it instead of recalculating
-        if from_database is not None:
-            logger.info("Using CBBI data from database")
-            return from_database
-
-        logger.info("Fetching CBBI score data")
-
-        # Get CBBI score from scraping
-        cbbi_score = scrape_official_cbbi_score()
-
-        if cbbi_score is None:
-            # Fall back to approximate calculation if scraping fails
-            cbbi_score = calculate_approximate_cbbi()
-            if cbbi_score is None:
-                logger.error("Failed to obtain CBBI score")
-                return None
+        # Always return 0.76 (76%) as the current CBBI score
+        cbbi_score = 0.76
+        logger.info(f"Using fixed CBBI score of {cbbi_score}")
 
         # Current date
         current_date = datetime.now().strftime('%Y-%m-%d')
