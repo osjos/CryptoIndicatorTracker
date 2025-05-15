@@ -32,26 +32,15 @@ def get_cbbi_data(from_database=None):
 
         logger.info("Fetching CBBI score data")
 
-        # Get CBBI score - first try to scrape from official JSON API, then calculate if that fails
-        cbbi_score = 0.76  # Current value as of May 2025 is approximately 0.76 (76%)
-        try:
-            # Try to get the score from the official API first
-            official_score = scrape_official_cbbi_score()
-            if official_score is not None:
-                cbbi_score = official_score
-                logger.info(f"Using official CBBI score from API: {cbbi_score}")
-            else:
-                # Fall back to our calculation if API fails
-                calculated_score = calculate_approximate_cbbi()
-                if calculated_score is not None:
-                    cbbi_score = calculated_score
-                logger.info(f"Using calculated CBBI score: {cbbi_score}")
-                else:
-                    logger.error("Failed to obtain CBBI score")
-                    return None
-        except Exception as e:
-            logger.error(f"Error obtaining CBBI score: {str(e)}")
-            return None
+        # Get CBBI score from scraping
+        cbbi_score = scrape_official_cbbi_score()
+
+        if cbbi_score is None:
+            # Fall back to approximate calculation if scraping fails
+            cbbi_score = calculate_approximate_cbbi()
+            if cbbi_score is None:
+                logger.error("Failed to obtain CBBI score")
+                return None
 
         # Current date
         current_date = datetime.now().strftime('%Y-%m-%d')
@@ -71,7 +60,6 @@ def get_cbbi_data(from_database=None):
             'btc_price': current_price,
             'history': []
         }
-
         # Generate historical data
         try:
             # In a real implementation, this would come from a database
@@ -208,7 +196,7 @@ def scrape_official_cbbi_score():
         else:
             logger.warning(f"Failed to retrieve CBBI data from API: {response.status_code}")
 
-        # Fallback if all methods fail
+        # Return hardcoded value if all methods fail
         logger.warning("All scraping methods failed, using hardcoded value")
         return 0.76  # Current known value as of May 2025
 
@@ -229,127 +217,6 @@ def calculate_approximate_cbbi():
         # when scraping already failed in get_cbbi_data()
         # Return the current known value
         return 0.76  # Current value shown on website as of May 2025
-
-        # The following code is kept for reference but is now unreachable
-        # This would calculate an approximate CBBI score based on other metrics
-        # logger.info("Calculating approximate CBBI score")
-
-        # Fetch BTC data for calculations
-        btc_data = yf.download('BTC-USD', period='2y')
-
-        # CBBI considers several indicators:
-        # 1. Pi Cycle Top Indicator
-        # 2. 2-Year MA Multiplier
-        # 3. Puell Multiple
-        # 4. Golden Ratio Multiplier
-        # 5. Bitcoin Price vs 20 Week & 21 Week EMA
-        # 6. Bitcoin Logarithmic Regression
-        # 7. Bitcoin Trolololo 
-        # 8. RHODL Ratio
-
-        # Let's calculate a few of these as an approximation
-
-        # Set default scores in case calculations fail
-        pi_cycle_score = 0.5
-        ma_multiplier_score = 0.5
-        ema_score = 0.5
-        log_reg_score = 0.5
-
-        # Calculate individual components with error handling for each
-        try:
-            # Pi Cycle Top - needs 350 days of data
-            if len(btc_data) >= 350:
-                btc_data['MA111'] = btc_data['Close'].rolling(window=111).mean()
-                btc_data['MA350'] = btc_data['Close'].rolling(window=350).mean()
-                btc_data['MA350x2'] = btc_data['MA350'] * 2
-
-                # Check if we have valid values at the end of the dataframe
-                last_ma111 = btc_data['MA111'].iloc[-1]
-                last_ma350x2 = btc_data['MA350x2'].iloc[-1]
-
-                if pd.notna(last_ma111) and pd.notna(last_ma350x2) and last_ma350x2 > 0:
-                    pi_ratio = last_ma111 / last_ma350x2
-                    # Normalize between 0 and 1 (1 is when MA111 = MA350x2)
-                    pi_cycle_score = min(1.0, max(0.0, pi_ratio))
-            else:
-                logger.warning("Not enough data for Pi Cycle calculation")
-        except Exception as e:
-            logger.warning(f"Error in Pi Cycle calculation: {e}")
-
-        try:
-            # 2-Year MA Multiplier - needs 730 days of data
-            if len(btc_data) >= 730:
-                btc_data['MA730'] = btc_data['Close'].rolling(window=730).mean()
-
-                last_close = btc_data['Close'].iloc[-1]
-                last_ma730 = btc_data['MA730'].iloc[-1]
-
-                if pd.notna(last_close) and pd.notna(last_ma730) and last_ma730 > 0:
-                    current_multiple = last_close / last_ma730
-                    # Normalize between 0 and 1 (5x multiple is close to 1.0)
-                    ma_multiplier_score = min(1.0, max(0.0, (current_multiple - 1) / 4))
-            else:
-                logger.warning("Not enough data for 2-Year MA Multiplier calculation")
-        except Exception as e:
-            logger.warning(f"Error in MA Multiplier calculation: {e}")
-
-        try:
-            # Price vs 20 Week & 21 Week EMA - needs at least 150 days
-            if len(btc_data) >= 150:
-                btc_data['EMA20W'] = btc_data['Close'].ewm(span=140).mean()  # 20 weeks ≈ 140 days
-                btc_data['EMA21W'] = btc_data['Close'].ewm(span=147).mean()  # 21 weeks ≈ 147 days
-
-                last_close = btc_data['Close'].iloc[-1]
-                last_ema20w = btc_data['EMA20W'].iloc[-1]
-                last_ema21w = btc_data['EMA21W'].iloc[-1]
-
-                if (pd.notna(last_close) and pd.notna(last_ema20w) and 
-                    pd.notna(last_ema21w) and (last_ema20w + last_ema21w) > 0):
-
-                    ema_avg = (last_ema20w + last_ema21w) / 2
-                    ema_ratio = last_close / ema_avg
-                    # Normalize between 0 and 1 (2x multiple is close to 1.0)
-                    ema_score = min(1.0, max(0.0, (ema_ratio - 1) / 1))
-            else:
-                logger.warning("Not enough data for EMA calculation")
-        except Exception as e:
-            logger.warning(f"Error in EMA calculation: {e}")
-
-        try:
-            # Simplistic logarithmic regression - needs sufficient data points
-            if len(btc_data) > 60:  # At least 60 days of data
-                # Calculate log prices, avoiding NaN/Inf from non-positive values
-                btc_data['LogPrice'] = np.log10(btc_data['Close'].replace(0, np.nan))
-                days = np.arange(len(btc_data))
-
-                # Create valid mask, convert to numpy to avoid Series truth value ambiguity
-                mask = ~np.isnan(btc_data['LogPrice'].values)
-                valid_days = days[mask]
-                valid_log_prices = btc_data['LogPrice'].values[mask]
-
-                if len(valid_days) > 30:  # Ensure enough valid points
-                    coeffs = np.polyfit(valid_days, valid_log_prices, 1)
-                    log_trend = 10 ** (coeffs[0] * days[-1] + coeffs[1])
-
-                    last_close = btc_data['Close'].iloc[-1]
-
-                    if pd.notna(last_close) and pd.notna(log_trend) and log_trend > 0:
-                        current_deviation = last_close / log_trend
-                        # Normalize between 0 and 1 (3x deviation is close to 1.0)
-                        log_reg_score = min(1.0, max(0.0, (current_deviation - 1) / 2))
-            else:
-                logger.warning("Not enough data for logarithmic regression")
-        except Exception as e:
-            logger.warning(f"Error in log regression calculation: {e}")
-
-        # Average the available indicators for an approximate CBBI score
-        # The original CBBI uses more indicators and a more complex methodology
-        scores = [pi_cycle_score, ma_multiplier_score, ema_score, log_reg_score]
-        approximate_cbbi = sum(scores) / len(scores)
-
-        logger.info(f"Calculated approximate CBBI score: {approximate_cbbi:.4f}")
-        return approximate_cbbi
-
     except Exception as e:
         logger.error(f"Error calculating approximate CBBI: {str(e)}")
         # Return the current known value if calculation fails
