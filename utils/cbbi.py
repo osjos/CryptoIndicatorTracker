@@ -46,9 +46,12 @@ def get_cbbi_data(from_database=None):
                 if calculated_score is not None:
                     cbbi_score = calculated_score
                 logger.info(f"Using calculated CBBI score: {cbbi_score}")
+                else:
+                    logger.error("Failed to obtain CBBI score")
+                    return None
         except Exception as e:
             logger.error(f"Error obtaining CBBI score: {str(e)}")
-            # Keep the default value of 0.76
+            return None
         
         # Current date
         current_date = datetime.now().strftime('%Y-%m-%d')

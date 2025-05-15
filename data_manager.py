@@ -27,7 +27,7 @@ def init_database():
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        
+
         # Create tables for each data type
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS mag7_btc (
@@ -36,7 +36,7 @@ def init_database():
             data TEXT NOT NULL
         )
         ''')
-        
+
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS pi_cycle (
             id INTEGER PRIMARY KEY,
@@ -44,7 +44,7 @@ def init_database():
             data TEXT NOT NULL
         )
         ''')
-        
+
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS coinbase_rank (
             id INTEGER PRIMARY KEY,
@@ -52,7 +52,7 @@ def init_database():
             data TEXT NOT NULL
         )
         ''')
-        
+
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS cbbi (
             id INTEGER PRIMARY KEY,
@@ -60,7 +60,7 @@ def init_database():
             data TEXT NOT NULL
         )
         ''')
-        
+
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS halving (
             id INTEGER PRIMARY KEY,
@@ -68,7 +68,7 @@ def init_database():
             data TEXT NOT NULL
         )
         ''')
-        
+
         # Create a dedicated table for daily CBBI scores
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS daily_cbbi_scores (
@@ -78,7 +78,7 @@ def init_database():
             timestamp TEXT NOT NULL
         )
         ''')
-        
+
         conn.commit()
         conn.close()
         logger.info("Database initialized successfully")
@@ -97,14 +97,14 @@ def update_database():
         # Initialize database if it doesn't exist
         if not os.path.exists(DB_PATH):
             init_database()
-        
+
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        
+
         # Current date and timestamp for all updates
         current_date = datetime.now().strftime('%Y-%m-%d')
         current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
+
         # Update MAG7-BTC data
         mag7_btc_data = get_mag7_btc_data()
         if mag7_btc_data:
@@ -112,7 +112,7 @@ def update_database():
                 "INSERT OR REPLACE INTO mag7_btc (date, data) VALUES (?, ?)",
                 (current_date, json.dumps(mag7_btc_data))
             )
-        
+
         # Update Pi Cycle data
         pi_cycle_data = get_pi_cycle_data()
         if pi_cycle_data:
@@ -120,7 +120,7 @@ def update_database():
                 "INSERT OR REPLACE INTO pi_cycle (date, data) VALUES (?, ?)",
                 (current_date, json.dumps(pi_cycle_data))
             )
-        
+
         # Update Coinbase ranking data
         coinbase_data = get_coinbase_ranking()
         if coinbase_data:
@@ -128,30 +128,18 @@ def update_database():
                 "INSERT OR REPLACE INTO coinbase_rank (date, data) VALUES (?, ?)",
                 (current_date, json.dumps(coinbase_data))
             )
-        
+
         # Update CBBI data
         cbbi_data = get_cbbi_data()
         if cbbi_data:
-            cursor.execute(
-                "INSERT OR REPLACE INTO cbbi (date, data) VALUES (?, ?)",
-                (current_date, json.dumps(cbbi_data))
-            )
-            
-            # Also update the daily CBBI scores table
             # Extract the score from the CBBI data
             cbbi_score = cbbi_data.get('score', None)
             if cbbi_score is not None:
-                # Make sure we're using the same score (76%) that's displayed on the website
-                # This ensures consistency between our dashboard and the official source
-                # Currently the API returns 0.74 but the website shows 76
-                if 0.74 <= cbbi_score < 0.75:
-                    cbbi_score = 0.76
-                
                 try:
                     # Check if we already have an entry for today
                     cursor.execute("SELECT id FROM daily_cbbi_scores WHERE date = ?", (current_date,))
                     existing_entry = cursor.fetchone()
-                    
+
                     if existing_entry:
                         # Update existing entry
                         cursor.execute(
@@ -168,7 +156,7 @@ def update_database():
                         logger.info(f"Inserted new CBBI score for {current_date}: {cbbi_score}")
                 except Exception as e:
                     logger.error(f"Error updating daily CBBI score: {str(e)}")
-        
+
         # Update halving cycle data
         halving_data = get_halving_data()
         if halving_data:
@@ -176,7 +164,7 @@ def update_database():
                 "INSERT OR REPLACE INTO halving (date, data) VALUES (?, ?)",
                 (current_date, json.dumps(halving_data))
             )
-        
+
         conn.commit()
         conn.close()
         logger.info("Database updated successfully")
@@ -188,10 +176,10 @@ def update_database():
 def get_historical_cbbi_scores(days=90):
     """
     Retrieve historical CBBI scores from the database.
-    
+
     Args:
         days: Number of days of history to retrieve (default 90 days)
-        
+
     Returns:
         List of dictionaries containing date and score for each recorded entry
     """
@@ -200,11 +188,11 @@ def get_historical_cbbi_scores(days=90):
         if not os.path.exists(DB_PATH):
             logger.info("Database does not exist for historical CBBI scores")
             return []
-        
+
         # Connect to database
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        
+
         # Get CBBI scores ordered by date
         # Limit to the specified number of days if requested
         if days:
@@ -214,11 +202,11 @@ def get_historical_cbbi_scores(days=90):
             )
         else:
             cursor.execute("SELECT date, score FROM daily_cbbi_scores ORDER BY date ASC")
-            
+
         results = cursor.fetchall()
-        
+
         historical_data = []
-        
+
         if results:
             for date_str, score in results:
                 # Convert date string to proper date format if needed
@@ -230,12 +218,12 @@ def get_historical_cbbi_scores(days=90):
                 except (ValueError, TypeError):
                     # If parsing fails, use the original string
                     formatted_date = date_str
-                
+
                 historical_data.append({
                     'date': formatted_date,
                     'score': score
                 })
-        
+
         conn.close()
         return historical_data
     except Exception as e:
@@ -245,7 +233,7 @@ def get_historical_cbbi_scores(days=90):
 def get_historical_coinbase_rankings():
     """
     Retrieve all historical Coinbase app ranking data from the database.
-    
+
     Returns:
         List of dictionaries containing date and rank for each recorded entry
     """
@@ -254,37 +242,37 @@ def get_historical_coinbase_rankings():
         if not os.path.exists(DB_PATH):
             logger.info("Database does not exist for historical coinbase data")
             return []
-        
+
         # Connect to database
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        
+
         # Get all coinbase ranking data
         cursor.execute("SELECT date, data FROM coinbase_rank ORDER BY date ASC")
         results = cursor.fetchall()
-        
+
         historical_data = []
-        
+
         if results:
             for date_str, data_json in results:
                 data = json.loads(data_json)
                 rank = data.get('rank')
-                
+
                 # Skip entries with no rank
                 if rank is None:
                     continue
-                    
+
                 # Convert string ranks like "200+" to integer 201 for consistency in graphs
                 if isinstance(rank, str) and "+" in rank:
                     rank_value = 201  # Just above 200 for plotting purposes
                 else:
                     rank_value = rank
-                
+
                 historical_data.append({
                     'date': date_str,
                     'rank': rank_value
                 })
-        
+
         conn.close()
         return historical_data
     except Exception as e:
@@ -295,7 +283,7 @@ def get_latest_data():
     """
     Get the latest data for all indicators from the database.
     If database doesn't exist or is empty, fetch fresh data.
-    
+
     Returns:
         Dictionary containing the latest data for all indicators
     """
@@ -304,14 +292,14 @@ def get_latest_data():
         if not os.path.exists(DB_PATH):
             logger.info("Database does not exist, creating and updating...")
             update_database()
-        
+
         # Connect to database
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        
+
         # Container for all data
         data = {}
-        
+
         # Get latest MAG7-BTC data
         cursor.execute("SELECT data FROM mag7_btc ORDER BY id DESC LIMIT 1")
         result = cursor.fetchone()
@@ -320,7 +308,7 @@ def get_latest_data():
         else:
             logger.info("No MAG7-BTC data in database, fetching fresh data...")
             data['mag7_btc'] = get_mag7_btc_data()
-        
+
         # Get latest Pi Cycle data
         cursor.execute("SELECT data FROM pi_cycle ORDER BY id DESC LIMIT 1")
         result = cursor.fetchone()
@@ -329,7 +317,7 @@ def get_latest_data():
         else:
             logger.info("No Pi Cycle data in database, fetching fresh data...")
             data['pi_cycle'] = get_pi_cycle_data()
-        
+
         # Get latest Coinbase ranking data
         cursor.execute("SELECT data FROM coinbase_rank ORDER BY id DESC LIMIT 1")
         result = cursor.fetchone()
@@ -338,7 +326,7 @@ def get_latest_data():
         else:
             logger.info("No Coinbase ranking data in database, fetching fresh data...")
             data['coinbase_rank'] = get_coinbase_ranking()
-        
+
         # Get latest CBBI data
         cursor.execute("SELECT data FROM cbbi ORDER BY id DESC LIMIT 1")
         result = cursor.fetchone()
@@ -347,7 +335,7 @@ def get_latest_data():
         else:
             logger.info("No CBBI data in database, fetching fresh data...")
             data['cbbi'] = get_cbbi_data()
-        
+
         # Get latest halving cycle data
         cursor.execute("SELECT data FROM halving ORDER BY id DESC LIMIT 1")
         result = cursor.fetchone()
@@ -356,7 +344,7 @@ def get_latest_data():
         else:
             logger.info("No halving cycle data in database, fetching fresh data...")
             data['halving'] = get_halving_data()
-        
+
         conn.close()
         logger.info("Retrieved latest data for all indicators")
         return data
@@ -364,7 +352,7 @@ def get_latest_data():
         logger.error(f"Error retrieving latest data: {str(e)}")
         # If database access fails, try to get fresh data
         logger.info("Attempting to fetch fresh data for all indicators...")
-        
+
         data = {
             'mag7_btc': get_mag7_btc_data(),
             'pi_cycle': get_pi_cycle_data(),
@@ -372,7 +360,7 @@ def get_latest_data():
             'cbbi': get_cbbi_data(),
             'halving': get_halving_data()
         }
-        
+
         return data
 
 if __name__ == "__main__":
