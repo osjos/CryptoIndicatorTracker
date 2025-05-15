@@ -196,15 +196,30 @@ def get_historical_cbbi_scores(days=90):
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
+        # Always include today's date in the results
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        
         # Get CBBI scores ordered by date
-        # Limit to the specified number of days if requested
+        # Include today's date in the query
         if days:
             cursor.execute(
-                "SELECT date, score FROM daily_cbbi_scores ORDER BY date DESC LIMIT ?",
-                (days,)
+                """
+                SELECT date, score FROM daily_cbbi_scores 
+                WHERE date <= ? 
+                ORDER BY date DESC 
+                LIMIT ?
+                """,
+                (current_date, days)
             )
         else:
-            cursor.execute("SELECT date, score FROM daily_cbbi_scores ORDER BY date ASC")
+            cursor.execute(
+                """
+                SELECT date, score FROM daily_cbbi_scores 
+                WHERE date <= ? 
+                ORDER BY date ASC
+                """,
+                (current_date,)
+            )
 
         results = cursor.fetchall()
 
