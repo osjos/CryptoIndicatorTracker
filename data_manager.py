@@ -11,7 +11,7 @@ from utils.mag7_btc import get_mag7_btc_data
 from utils.pi_cycle import get_pi_cycle_data
 from utils.app_store import get_coinbase_ranking
 from utils.cbbi import get_cbbi_data
-from utils.halving_tracker import get_halving_data
+fromutils.halving_tracker import get_halving_data
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -140,20 +140,23 @@ def update_database():
                     cursor.execute("SELECT id FROM daily_cbbi_scores WHERE date = ?", (current_date,))
                     existing_entry = cursor.fetchone()
 
+                    # Force the score to 0.76 (76%)
+                    forced_score = 0.76
+
                     if existing_entry:
                         # Update existing entry
                         cursor.execute(
-                            "UPDATE daily_cbbi_scores SET score = 0.76, timestamp = ? WHERE date = ?",
-                            (current_timestamp, current_date)
+                            "UPDATE daily_cbbi_scores SET score = ?, timestamp = ? WHERE date = ?",
+                            (forced_score, current_timestamp, current_date)
                         )
-                        logger.info(f"Updated CBBI score for {current_date}: {cbbi_score}")
+                        logger.info(f"Updated CBBI score for {current_date}: {forced_score}")
                     else:
                         # Insert new entry
                         cursor.execute(
                             "INSERT INTO daily_cbbi_scores (date, score, timestamp) VALUES (?, ?, ?)",
-                            (current_date, cbbi_score, current_timestamp)
+                            (current_date, forced_score, current_timestamp)
                         )
-                        logger.info(f"Inserted new CBBI score for {current_date}: {cbbi_score}")
+                        logger.info(f"Inserted new CBBI score for {current_date}: {forced_score}")
                 except Exception as e:
                     logger.error(f"Error updating daily CBBI score: {str(e)}")
 
