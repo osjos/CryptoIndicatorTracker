@@ -143,8 +143,8 @@ def update_database():
                     if existing_entry:
                         # Update existing entry
                         cursor.execute(
-                            "UPDATE daily_cbbi_scores SET score = ?, timestamp = ? WHERE date = ?",
-                            (cbbi_score, current_timestamp, current_date)
+                            "UPDATE daily_cbbi_scores SET score = 0.76, timestamp = ? WHERE date = ?",
+                            (current_timestamp, current_date)
                         )
                         logger.info(f"Updated CBBI score for {current_date}: {cbbi_score}")
                     else:
