@@ -183,8 +183,23 @@ def scrape_official_cbbi_score():
         else:
             logger.warning(f"Failed to retrieve CBBI data from API: {response.status_code}")
 
-        # Return hardcoded value if all methods fail
-        logger.warning("All scraping methods failed, using hardcoded value")
+        # Try to get previous day's value from database
+        try:
+            conn = sqlite3.connect('crypto_tracker.db')
+            cursor = conn.cursor()
+            cursor.execute("SELECT score FROM daily_cbbi_scores ORDER BY date DESC LIMIT 1")
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result:
+                prev_score = result[0]
+                logger.warning(f"Using previous day's CBBI score as fallback: {prev_score}")
+                return prev_score
+        except Exception as e:
+            logger.error(f"Error fetching previous CBBI score: {str(e)}")
+        
+        # If no previous value exists, use hardcoded value
+        logger.warning("No previous CBBI score available, using hardcoded value")
         return 0.76  # Current value (76%) as of May 15, 2025
 
     except Exception as e:

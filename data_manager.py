@@ -140,23 +140,23 @@ def update_database():
                     cursor.execute("SELECT id FROM daily_cbbi_scores WHERE date = ?", (current_date,))
                     existing_entry = cursor.fetchone()
 
-                    # Force the score to 0.76 (76%)
-                    forced_score = 0.76
+                    # Get the scraped or fallback score from CBBI data
+                    score = cbbi_score
 
                     if existing_entry:
                         # Update existing entry
                         cursor.execute(
                             "UPDATE daily_cbbi_scores SET score = ?, timestamp = ? WHERE date = ?",
-                            (forced_score, current_timestamp, current_date)
+                            (score, current_timestamp, current_date)
                         )
-                        logger.info(f"Updated CBBI score for {current_date}: {forced_score}")
+                        logger.info(f"Updated CBBI score for {current_date}: {score}")
                     else:
                         # Insert new entry
                         cursor.execute(
                             "INSERT INTO daily_cbbi_scores (date, score, timestamp) VALUES (?, ?, ?)",
-                            (current_date, forced_score, current_timestamp)
+                            (current_date, score, current_timestamp)
                         )
-                        logger.info(f"Inserted new CBBI score for {current_date}: {forced_score}")
+                        logger.info(f"Inserted new CBBI score for {current_date}: {score}")
                 except Exception as e:
                     logger.error(f"Error updating daily CBBI score: {str(e)}")
 
