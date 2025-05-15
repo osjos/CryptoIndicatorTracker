@@ -19,6 +19,24 @@ def get_monitor_data():
         conn = sqlite3.connect('crypto_tracker.db')
         cursor = conn.cursor()
         
+        # Get latest update status for each indicator
+        cursor.execute("""
+            WITH RankedUpdates AS (
+                SELECT 
+                    indicator,
+                    status,
+                    timestamp,
+                    message,
+                    ROW_NUMBER() OVER (PARTITION BY indicator ORDER BY timestamp DESC) as rn
+                FROM indicator_updates
+            )
+            SELECT indicator, status, timestamp, message
+            FROM RankedUpdates
+            WHERE rn = 1
+            ORDER BY timestamp DESC
+        """)
+        updates = cursor.fetchall()
+        
         # Get latest entries for each indicator
         data = {
             'MAG7 vs BTC': cursor.execute("SELECT date, data FROM mag7_btc ORDER BY id DESC LIMIT 1").fetchone(),
@@ -29,45 +47,41 @@ def get_monitor_data():
         }
         
         conn.close()
-        return data
+        return data, updates
     except Exception as e:
         st.error(f"Error accessing database: {str(e)}")
-        return None
+        return None, None
 
 # Get the data
-monitor_data = get_monitor_data()
+monitor_data, updates = get_monitor_data()
 
-if monitor_data:
+if monitor_data and updates:
     # Create status table
     status_data = []
     
+    # Process updates into status data
+    update_dict = {update[0]: update for update in updates}
+    
     for indicator, data in monitor_data.items():
-        if data:
-            if indicator == 'CBBI Score':
-                # Special handling for CBBI which has a different structure
-                date, score, timestamp = data
-                status = {
-                    'Indicator': indicator,
-                    'Last Update': timestamp,
-                    'Status': 'Using fixed value (0.76)' if score == 0.76 else 'Success',
-                    'Value': f"{score * 100:.1f}" if score is not None else 'N/A'
-                }
-            else:
-                date, data_str = data
-                status = {
-                    'Indicator': indicator,
-                    'Last Update': date,
-                    'Status': 'Success',
-                    'Value': 'Available'
-                }
-        else:
-            status = {
+        update = update_dict.get(indicator)
+        
+        if update:
+            indicator, status, timestamp, message = update
+            status_entry = {
                 'Indicator': indicator,
-                'Last Update': 'Never',
-                'Status': 'Failed',
-                'Value': 'N/A'
+                'Last Update': timestamp,
+                'Status': status,
+                'Value': 'Available' if status == 'Success' else (message or 'N/A')
             }
-        status_data.append(status)
+            
+            # Special handling for CBBI
+            if indicator == 'CBBI Score' and data:
+                date, score, _ = data
+                status_entry['Value'] = f"{score * 100:.1f}" if score is not None else 'N/A'
+                if score == 0.76:
+                    status_entry['Status'] = 'Using fixed value (0.76)'
+            
+            status_data.append(status_entry)
     
     # Convert to DataFrame for display
     df = pd.DataFrame(status_data)
@@ -82,7 +96,7 @@ if monitor_data:
             return 'background-color: #FFB6C1'
     
     # Apply styling
-    styled_df = df.style.applymap(color_status, subset=['Status'])
+    styled_df = df.style.map(color_status, subset=['Status'])
     
     # Display the table
     st.dataframe(styled_df, use_container_width=True)

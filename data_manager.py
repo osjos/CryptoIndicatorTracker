@@ -98,6 +98,21 @@ def update_database():
         if not os.path.exists(DB_PATH):
             init_database()
 
+        # Initialize updates tracking table if not exists
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS indicator_updates (
+            id INTEGER PRIMARY KEY,
+            indicator TEXT NOT NULL,
+            status TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            message TEXT
+        )
+        ''')
+        conn.commit()
+        conn.close()
+
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
 
@@ -105,13 +120,25 @@ def update_database():
         current_date = datetime.now().strftime('%Y-%m-%d')
         current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        # Update MAG7-BTC data
-        mag7_btc_data = get_mag7_btc_data()
-        if mag7_btc_data:
+        def log_update(indicator, success, message=None):
             cursor.execute(
-                "INSERT OR REPLACE INTO mag7_btc (date, data) VALUES (?, ?)",
-                (current_date, json.dumps(mag7_btc_data))
+                "INSERT INTO indicator_updates (indicator, status, timestamp, message) VALUES (?, ?, ?, ?)",
+                (indicator, 'Success' if success else 'Failed', current_timestamp, message)
             )
+
+        # Update MAG7-BTC data
+        try:
+            mag7_btc_data = get_mag7_btc_data()
+            if mag7_btc_data:
+                cursor.execute(
+                    "INSERT OR REPLACE INTO mag7_btc (date, data) VALUES (?, ?)",
+                    (current_date, json.dumps(mag7_btc_data))
+                )
+                log_update('MAG7 vs BTC', True)
+            else:
+                log_update('MAG7 vs BTC', False, 'No data returned')
+        except Exception as e:
+            log_update('MAG7 vs BTC', False, str(e))
 
         # Update Pi Cycle data
         pi_cycle_data = get_pi_cycle_data()
