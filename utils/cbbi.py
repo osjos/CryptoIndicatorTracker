@@ -198,11 +198,11 @@ def scrape_official_cbbi_score():
 
         # Return hardcoded value if all methods fail
         logger.warning("All scraping methods failed, using hardcoded value")
-        return 0.76  # Current value (76%) as of May 2025
+        return 0.76  # Current value (76%) as of May 15, 2025
 
     except Exception as e:
         logger.error(f"Error fetching CBBI score: {str(e)}")
-        return 0.76  # Current value (76%) as of May 2025
+        return 0.76  # Current value (76%) as of May 15, 2025
 
 def calculate_approximate_cbbi():
     """
@@ -216,11 +216,11 @@ def calculate_approximate_cbbi():
         # No need to try scraping again since this is called as a fallback
         # when scraping already failed in get_cbbi_data()
         # Return the current known value
-        return 0.76  # Current value (76%) shown on website as of May 2025
+        return 0.76  # Current value (76%) as of May 15, 2025
     except Exception as e:
         logger.error(f"Error calculating approximate CBBI: {str(e)}")
         # Return the current known value if calculation fails
-        return 0.76  # Current value (76%) as of May 2025
+        return 0.76  # Current value (76%) as of May 15, 2025
 
 if __name__ == "__main__":
     # Test the function
