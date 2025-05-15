@@ -11,7 +11,7 @@ from utils.mag7_btc import get_mag7_btc_data
 from utils.pi_cycle import get_pi_cycle_data
 from utils.app_store import get_coinbase_ranking
 from utils.cbbi import get_cbbi_data
-fromutils.halving_tracker import get_halving_data
+from utils.halving_tracker import get_halving_data
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
