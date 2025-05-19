@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 import numpy as np
+import sqlite3
 from bs4 import BeautifulSoup
 import yfinance as yf
 
@@ -25,9 +26,14 @@ def get_cbbi_data(from_database=None):
         Dictionary containing CBBI score data
     """
     try:
-        # Always return 0.76 (76%) as the current CBBI score
-        cbbi_score = 0.76
-        logger.info(f"Using fixed CBBI score of {cbbi_score}")
+        # Get the current CBBI score by scraping the official website
+        cbbi_score = scrape_official_cbbi_score()
+        
+        if cbbi_score is None:
+            logger.warning("Failed to scrape CBBI score, attempting approximate calculation")
+            cbbi_score = calculate_approximate_cbbi()
+            
+        logger.info(f"Using CBBI score: {cbbi_score:.2f} ({int(cbbi_score*100)}%)")
 
         # Current date
         current_date = datetime.now().strftime('%Y-%m-%d')
@@ -167,10 +173,11 @@ def scrape_official_cbbi_score():
                         # Get the score for the latest timestamp
                         score = float(data['Confidence'][latest_timestamp])
 
-                        # Hard-code to 0.76 (76%) if we get 0.74xx because the website shows 76
-                        # This ensures consistency with the website's displayed value
+                        # This used to hard-code the value to 0.76, but now we'll use whatever
+                        # value we get from the website to ensure we're always showing current data
+                        # We'll still log the adjustment for debugging
                         if 0.74 <= score < 0.75:
-                            score = 0.76
+                            logger.info(f"Note: Website score is in the 74% range ({score:.4f}), previously we hardcoded to 76%")
 
                         logger.info(f"Successfully fetched CBBI score from API: {score}")
                         return score
@@ -198,13 +205,14 @@ def scrape_official_cbbi_score():
         except Exception as e:
             logger.error(f"Error fetching previous CBBI score: {str(e)}")
         
-        # If no previous value exists, use hardcoded value
-        logger.warning("No previous CBBI score available, using hardcoded value")
-        return 0.76  # Current value (76%) as of May 15, 2025
+        # If no previous value exists, calculate an approximate value based on market data
+        logger.warning("No previous CBBI score available, calculating approximate value")
+        return calculate_approximate_cbbi()
 
     except Exception as e:
         logger.error(f"Error fetching CBBI score: {str(e)}")
-        return 0.76  # Current value (76%) as of May 15, 2025
+        # Try to calculate an approximate score instead of using a hardcoded value
+        return calculate_approximate_cbbi()
 
 def calculate_approximate_cbbi():
     """
@@ -215,14 +223,76 @@ def calculate_approximate_cbbi():
         Approximate CBBI score between 0 and 1
     """
     try:
-        # No need to try scraping again since this is called as a fallback
-        # when scraping already failed in get_cbbi_data()
-        # Return the current known value
-        return 0.76  # Current value (76%) as of May 15, 2025
+        # Get Bitcoin price data for calculations
+        btc_data = yf.download('BTC-USD', period='2y', progress=False)
+        
+        if btc_data.empty:
+            logger.warning("Could not get BTC price data for CBBI calculation")
+            # Try to get the most recent value from the database
+            try:
+                conn = sqlite3.connect('crypto_tracker.db')
+                cursor = conn.cursor()
+                cursor.execute("SELECT score FROM daily_cbbi_scores ORDER BY date DESC LIMIT 1")
+                result = cursor.fetchone()
+                conn.close()
+                
+                if result and result[0]:
+                    prev_score = result[0]
+                    logger.info(f"Using previous score from database: {prev_score}")
+                    return prev_score
+            except Exception as e:
+                logger.error(f"Error retrieving previous score: {str(e)}")
+                
+            # If all else fails
+            logger.warning("No data available for calculation, using most recent known score")
+            return 0.76  # Fallback if nothing works
+        
+        # Current price
+        current_price = btc_data['Close'].iloc[-1]
+        
+        # 200-day moving average
+        ma_200d = btc_data['Close'].rolling(window=200).mean().iloc[-1]
+        
+        # Current price vs all-time high
+        all_time_high = btc_data['Close'].max()
+        ath_ratio = current_price / all_time_high if all_time_high > 0 else 0
+        
+        # Normalized position in 2-year range
+        two_year_min = btc_data['Close'].min()
+        two_year_max = btc_data['Close'].max()
+        range_position = (current_price - two_year_min) / (two_year_max - two_year_min) if (two_year_max - two_year_min) > 0 else 0.5
+        
+        # Price vs 200d MA ratio
+        ma_ratio = current_price / ma_200d if ma_200d > 0 else 1
+        ma_component = min(1, max(0, (ma_ratio - 1) / 2))  # Normalize to 0-1
+        
+        # Simple approximation formula
+        # Weight the components to get a score between 0 and 1
+        score = (0.4 * ath_ratio) + (0.4 * range_position) + (0.2 * ma_component)
+        
+        logger.info(f"Calculated approximate CBBI score: {score:.4f}")
+        return score
+    
     except Exception as e:
         logger.error(f"Error calculating approximate CBBI: {str(e)}")
-        # Return the current known value if calculation fails
-        return 0.76  # Current value (76%) as of May 15, 2025
+        
+        # Try to get the most recent value from the database as a fallback
+        try:
+            conn = sqlite3.connect('crypto_tracker.db')
+            cursor = conn.cursor()
+            cursor.execute("SELECT score FROM daily_cbbi_scores ORDER BY date DESC LIMIT 1")
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result and result[0]:
+                prev_score = result[0]
+                logger.info(f"Using previous score from database after calculation error: {prev_score}")
+                return prev_score
+        except Exception as db_error:
+            logger.error(f"Error accessing database: {str(db_error)}")
+        
+        # Only as a last resort if both calculation and DB lookup fail
+        return 0.76
 
 if __name__ == "__main__":
     # Test the function
