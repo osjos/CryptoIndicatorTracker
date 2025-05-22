@@ -45,20 +45,9 @@ def start_scheduler():
                 replace_existing=True
             )
             
-            # Add a dedicated CBBI score update job to run every 6 hours
-            # This ensures we capture intraday changes to the CBBI score
-            scheduler.add_job(
-                func=scheduled_update_cbbi_score,
-                trigger=IntervalTrigger(hours=6),
-                id='cbbi_score_update_job',
-                name='CBBI Score Update Every 6 Hours',
-                replace_existing=True
-            )
-            
             # Start the scheduler
             scheduler.start()
             logger.info("Scheduler started successfully with daily update at 6 AM Stockholm time")
-            logger.info("CBBI score will be updated every 6 hours")
             
             # Run an initial update to ensure we have fresh data
             scheduled_update_database()
