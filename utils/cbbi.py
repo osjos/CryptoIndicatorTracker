@@ -17,18 +17,49 @@ CBBI_URL = "https://colintalkscrypto.com/cbbi/data/latest.json"
 
 def fetch_cbbi_df() -> pd.DataFrame:
     """Returns daily CBBI dataframe: columns [date, cbbi] (ISO date, float)."""
-    r = requests.get(CBBI_URL, timeout=30)
-    r.raise_for_status()
-    j = r.json()
+    last_err = None
+    j = None
+    
+    HEADERS = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        "Accept": "application/json,text/plain,*/*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://colintalkscrypto.com/cbbi/"
+    }
+    
+    URLS = [
+        "https://colintalkscrypto.com/cbbi/data/latest.json",
+        "https://www.colintalkscrypto.com/cbbi/data/latest.json",
+    ]
+    
+    for url in URLS:
+        try:
+            r = requests.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
+            r.raise_for_status()
+            j = r.json()
+            break
+        except Exception as e:
+            last_err = e
+            logger.warning("CBBI fetch failed at %s: %s", url, e)
+    
+    if j is None:
+        raise RuntimeError(f"CBBI fetch failed: {last_err}")
+
+    # j["Confidence"] is {"YYYY-MM-DD": value}
     s = pd.Series(j.get("Confidence", {}), name="cbbi")
     if s.empty:
-        return pd.DataFrame(columns=["date", "cbbi"])
+        raise RuntimeError("CBBI JSON had no 'Confidence' data")
+
+    # Normalize to 0..100 (handle 0..1 inputs)
+    s = pd.to_numeric(s, errors="coerce")
+    if s.max() <= 1.0:
+        s = s * 100.0
+
     df = s.to_frame()
     df.index = pd.to_datetime(df.index, utc=True, errors="coerce")
-    df = df.dropna().sort_index()
-    df = df.reset_index().rename(columns={"index": "date"})
+    df = df.dropna().sort_index().reset_index().rename(columns={"index": "date"})
     df["date"] = df["date"].dt.date.astype(str)
-    df["cbbi"] = df["cbbi"].astype(float)
     return df
 
 def get_cbbi_data(from_database=None):
