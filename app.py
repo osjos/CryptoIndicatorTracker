@@ -12,7 +12,7 @@ import atexit
 # Import custom modules for indicators
 from utils.mag7_btc import get_mag7_btc_data
 from utils.pi_cycle import get_pi_cycle_data
-from utils.app_store import get_coinbase_ranking
+from utils.app_store import fetch_coinbase_rank_df
 from utils.cbbi import get_cbbi_data
 from utils.halving_tracker import get_halving_data
 from data_manager import update_database, get_latest_data, get_historical_coinbase_rankings, get_historical_cbbi_scores, ensure_cbbi_and_rank_seed

@@ -11,7 +11,7 @@ from contextlib import contextmanager
 # Import data functions
 from utils.mag7_btc import get_mag7_btc_data
 from utils.pi_cycle import get_pi_cycle_data
-from utils.app_store import get_coinbase_ranking
+from utils.app_store import fetch_coinbase_rank_df
 from utils.cbbi import get_cbbi_data
 from utils.halving_tracker import get_halving_data
 
@@ -169,7 +169,7 @@ def update_database():
             )
 
         # Update Coinbase ranking data
-        coinbase_data = get_coinbase_ranking()
+        coinbase_data = fetch_coinbase_rank_df()
         if coinbase_data:
             cursor.execute(
                 "INSERT OR REPLACE INTO coinbase_rank (date, data) VALUES (?, ?)",
@@ -394,7 +394,7 @@ def get_latest_data():
             data['coinbase_rank'] = json.loads(result[0])
         else:
             logger.info("No Coinbase ranking data in database, fetching fresh data...")
-            data['coinbase_rank'] = get_coinbase_ranking()
+            data['coinbase_rank'] = fetch_coinbase_rank_df()
 
         # Get latest CBBI data
         cursor.execute("SELECT data FROM cbbi ORDER BY id DESC LIMIT 1")
@@ -425,7 +425,7 @@ def get_latest_data():
         data = {
             'mag7_btc': get_mag7_btc_data(),
             'pi_cycle': get_pi_cycle_data(),
-            'coinbase_rank': get_coinbase_ranking(),
+            'coinbase_rank': fetch_coinbase_rank_df(),
             'cbbi': get_cbbi_data(),
             'halving': get_halving_data()
         }
@@ -476,7 +476,11 @@ def upsert_coinbase_rank_df(df: pd.DataFrame):
 def get_cbbi_history() -> pd.DataFrame:
     """Get CBBI history as DataFrame with parsed dates."""
     with get_connection() as conn:
-        return pd.read_sql("SELECT date, cbbi FROM cbbi_daily ORDER BY date", conn, parse_dates=["date"])
+        df = pd.read_sql("SELECT date, cbbi FROM cbbi_daily ORDER BY date", conn, parse_dates=["date"])
+        df["cbbi"] = pd.to_numeric(df["cbbi"], errors="coerce")
+        if df["cbbi"].max() <= 1.0:
+            df["cbbi"] *= 100.0
+        return df
 
 def get_coinbase_rank_history() -> pd.DataFrame:
     """Get Coinbase rank history as DataFrame with parsed dates."""
