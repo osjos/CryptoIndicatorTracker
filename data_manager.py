@@ -483,6 +483,43 @@ def get_coinbase_rank_history() -> pd.DataFrame:
     with get_connection() as conn:
         return pd.read_sql("SELECT date, rank FROM coinbase_rank ORDER BY date", conn, parse_dates=["date"])
 
+def ensure_cbbi_and_rank_seed():
+    """Create tables if missing and seed once if empty."""
+    init_database()  # your existing init
+    from utils.cbbi import fetch_cbbi_df
+    from utils.appstore import fetch_coinbase_rank_df
+
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""CREATE TABLE IF NOT EXISTS cbbi_daily (
+            date TEXT PRIMARY KEY, cbbi REAL NOT NULL
+        );""")
+        cur.execute("""CREATE TABLE IF NOT EXISTS coinbase_rank (
+            date TEXT PRIMARY KEY, rank INTEGER NOT NULL,
+            store TEXT DEFAULT 'apple_us', chart TEXT DEFAULT 'top_free_overall'
+        );""")
+        conn.commit()
+
+        cur.execute("SELECT COUNT(1) FROM cbbi_daily")
+        n_cbbi = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(1) FROM coinbase_rank")
+        n_rank = cur.fetchone()[0]
+
+    # Seed if empty (safe to run multiple times)
+    if n_cbbi == 0:
+        try:
+            upsert_cbbi_df(fetch_cbbi_df())
+            print("Seeded cbbi_daily.")
+        except Exception as e:
+            print("Seed CBBI failed:", e)
+
+    if n_rank == 0:
+        try:
+            upsert_coinbase_rank_df(fetch_coinbase_rank_df())
+            print("Seeded coinbase_rank.")
+        except Exception as e:
+            print("Seed Coinbase rank failed:", e)
+
 if __name__ == "__main__":
     # Test the functions
     init_database()
