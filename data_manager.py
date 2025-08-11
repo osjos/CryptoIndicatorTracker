@@ -5,6 +5,8 @@ import json
 from datetime import datetime
 import logging
 import os
+import pandas as pd
+from contextlib import contextmanager
 
 # Import data functions
 from utils.mag7_btc import get_mag7_btc_data
@@ -429,6 +431,57 @@ def get_latest_data():
         }
 
         return data
+
+@contextmanager
+def get_connection():
+    """Context manager for database connections."""
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+def upsert_cbbi_df(df: pd.DataFrame):
+    """df columns: date, cbbi"""
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.executemany(
+            "INSERT INTO cbbi_daily(date, cbbi) VALUES(?, ?) "
+            "ON CONFLICT(date) DO UPDATE SET cbbi=excluded.cbbi",
+            [(r["date"], float(r["cbbi"])) for _, r in df.iterrows()]
+        )
+        conn.commit()
+        logger.info(f"Upserted {len(df)} CBBI records")
+
+def upsert_coinbase_rank_df(df: pd.DataFrame):
+    """df columns: date, rank, store, chart (store/chart optional)"""
+    with get_connection() as conn:
+        cur = conn.cursor()
+        payload = []
+        for _, r in df.iterrows():
+            payload.append((
+                r["date"],
+                int(r["rank"]),
+                r.get("store", "apple_us"),
+                r.get("chart", "top_free_overall")
+            ))
+        cur.executemany(
+            "INSERT INTO coinbase_rank(date, rank, store, chart) VALUES(?, ?, ?, ?) "
+            "ON CONFLICT(date) DO UPDATE SET rank=excluded.rank, store=excluded.store, chart=excluded.chart",
+            payload
+        )
+        conn.commit()
+        logger.info(f"Upserted {len(df)} Coinbase rank records")
+
+def get_cbbi_history() -> pd.DataFrame:
+    """Get CBBI history as DataFrame with parsed dates."""
+    with get_connection() as conn:
+        return pd.read_sql("SELECT date, cbbi FROM cbbi_daily ORDER BY date", conn, parse_dates=["date"])
+
+def get_coinbase_rank_history() -> pd.DataFrame:
+    """Get Coinbase rank history as DataFrame with parsed dates."""
+    with get_connection() as conn:
+        return pd.read_sql("SELECT date, rank FROM coinbase_rank ORDER BY date", conn, parse_dates=["date"])
 
 if __name__ == "__main__":
     # Test the functions
