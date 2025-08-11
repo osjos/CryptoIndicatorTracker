@@ -45,14 +45,14 @@ def get_mag7_btc_data(from_database=None):
             data = data['Close']
         
         # Handle any missing data
-        data.dropna(how='all', inplace=True)
+        data = data.dropna(how='all')
         
         # Filter out data before all stocks/BTC have values
         valid_start_date = data[['BTC-USD', 'TSLA']].dropna().index.min()
         data = data[data.index >= valid_start_date]
         
         # Forward-fill missing values
-        data.ffill(inplace=True)
+        data = data.ffill()
         
         # Normalize prices to start at 100
         normalized_data = data / data.iloc[0] * 100
@@ -84,7 +84,7 @@ def get_mag7_btc_data(from_database=None):
         index_data['EMA150'] = index_data['Smoothed_Index'].ewm(span=150, adjust=False).mean()
         
         # Drop rows with NaN in critical columns
-        index_data.dropna(subset=['Smoothed_Index'], inplace=True)
+        index_data = index_data.dropna(subset=['Smoothed_Index'])
         
         # Build response data (removed MA100 and EMA100 per user request)
         response = {

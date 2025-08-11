@@ -170,10 +170,12 @@ def update_database():
 
         # Update Coinbase ranking data
         coinbase_data = fetch_coinbase_rank_df()
-        if coinbase_data:
+        if coinbase_data is not None and not coinbase_data.empty:
+            # Convert DataFrame to dictionary for JSON serialization
+            coinbase_dict = coinbase_data.to_dict('records')[0] if len(coinbase_data) > 0 else {}
             cursor.execute(
                 "INSERT OR REPLACE INTO coinbase_rank (date, data) VALUES (?, ?)",
-                (current_date, json.dumps(coinbase_data))
+                (current_date, json.dumps(coinbase_dict))
             )
 
         # Update CBBI data
