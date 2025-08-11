@@ -185,15 +185,27 @@ if page == "Dashboard Overview":
     with col3:
         st.subheader("Coinbase App Ranking")
         if 'coinbase_rank' in data and data['coinbase_rank'] is not None:
-            rank = data['coinbase_rank'].get('rank')
+            # Handle both dict and DataFrame data structures
+            if isinstance(data['coinbase_rank'], dict):
+                rank = data['coinbase_rank'].get('rank')
+            else:
+                # If it's a DataFrame or Series, extract the first value
+                rank = data['coinbase_rank']['rank'].iloc[0] if hasattr(data['coinbase_rank'], 'iloc') else data['coinbase_rank'].get('rank')
+            
+            # Convert to scalar value if it's still a Series
+            if hasattr(rank, 'item'):
+                rank = rank.item()
+            
             status, color = get_indicator_status("Coinbase Rank", rank, [5, 50])
             
             # Format the rank display properly (handling string values like "200+")
             if isinstance(rank, str) and "+" in rank:
                 # Already formatted with + sign
                 display_rank = f"#{rank}"
+            elif rank is not None and rank != "N/A":
+                display_rank = f"#{rank}"
             else:
-                display_rank = f"#{rank}" if rank else "N/A"
+                display_rank = "N/A"
                 
             st.metric(
                 label="App Store Rank", 
@@ -1101,8 +1113,21 @@ elif page == "CBBI Score":
             if 'history' in data['cbbi'] and data['cbbi']['history']:
                 history = data['cbbi']['history']
                 dates = [item['date'] for item in history]
-                scores = [item['score'] * 100 for item in history]
-                btc_prices = [item['btc_price'] for item in history]
+                # Handle different possible key names for the score
+                scores = []
+                btc_prices = []
+                for item in history:
+                    if 'score' in item:
+                        scores.append(item['score'] * 100)
+                    elif 'cbbi' in item:
+                        scores.append(item['cbbi'] * 100)
+                    else:
+                        scores.append(0)  # fallback
+                    
+                    if 'btc_price' in item:
+                        btc_prices.append(item['btc_price'])
+                    else:
+                        btc_prices.append(0)  # fallback
                 
                 # Main CBBI chart
                 fig = go.Figure()
