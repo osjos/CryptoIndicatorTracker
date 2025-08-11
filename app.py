@@ -1106,9 +1106,15 @@ elif page == "CBBI Score":
                 # Sort by date (descending for table display)
                 df = df.sort_values(by='date', ascending=False)
                 
-                # Format for display
-                df['score'] = df['score'] * 100  # Convert to percentage
-                df['score'] = df['score'].round(2)  # Round to 2 decimal places
+                # Format for display - check if score is already in percentage format
+                if not df.empty:
+                    # Check if scores are already in percentage format (0-100) or decimal (0-1)
+                    sample_score = df['score'].iloc[0] if len(df) > 0 else 0
+                    if sample_score <= 1:
+                        # Score is in decimal format, convert to percentage
+                        df['score'] = df['score'] * 100
+                    # If score > 1, it's already in percentage format, don't multiply
+                    df['score'] = df['score'].round(2)  # Round to 2 decimal places
                 
                 # Format the date column to show May dates clearly
                 df['date'] = df['date'].dt.strftime('%Y-%m-%d')
@@ -1133,9 +1139,18 @@ elif page == "CBBI Score":
                 btc_prices = []
                 for item in history:
                     if 'score' in item:
-                        scores.append(item['score'] * 100)
+                        # Check if score is already in percentage format (0-100) or decimal (0-1)
+                        score_value = item['score']
+                        if score_value > 1:
+                            scores.append(score_value)  # Already in percentage format
+                        else:
+                            scores.append(score_value * 100)  # Convert decimal to percentage
                     elif 'cbbi' in item:
-                        scores.append(item['cbbi'] * 100)
+                        score_value = item['cbbi']
+                        if score_value > 1:
+                            scores.append(score_value)  # Already in percentage format
+                        else:
+                            scores.append(score_value * 100)  # Convert decimal to percentage
                     else:
                         scores.append(0)  # fallback
                     
@@ -1197,8 +1212,30 @@ elif page == "CBBI Score":
             if 'history' in data['cbbi'] and data['cbbi']['history']:
                 history = data['cbbi']['history']
                 dates = [item['date'] for item in history]
-                scores = [item['score'] * 100 for item in history]
-                btc_prices = [item['btc_price'] for item in history]
+                # Handle different possible key names for the score
+                scores = []
+                btc_prices = []
+                for item in history:
+                    if 'score' in item:
+                        # Check if score is already in percentage format (0-100) or decimal (0-1)
+                        score_value = item['score']
+                        if score_value > 1:
+                            scores.append(score_value)  # Already in percentage format
+                        else:
+                            scores.append(score_value * 100)  # Convert decimal to percentage
+                    elif 'cbbi' in item:
+                        score_value = item['cbbi']
+                        if score_value > 1:
+                            scores.append(score_value)  # Already in percentage format
+                        else:
+                            scores.append(score_value * 100)  # Convert decimal to percentage
+                    else:
+                        scores.append(0)  # fallback
+                    
+                    if 'btc_price' in item:
+                        btc_prices.append(item['btc_price'])
+                    else:
+                        btc_prices.append(0)  # fallback
                 
                 # BTC price with CBBI overlays
                 fig2 = make_subplots(specs=[[{"secondary_y": True}]])
