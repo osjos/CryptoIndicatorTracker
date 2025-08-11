@@ -52,7 +52,7 @@ def get_mag7_btc_data(from_database=None):
         data = data[data.index >= valid_start_date]
         
         # Forward-fill missing values
-        data.fillna(method='ffill', inplace=True)
+        data.ffill(inplace=True)
         
         # Normalize prices to start at 100
         normalized_data = data / data.iloc[0] * 100
