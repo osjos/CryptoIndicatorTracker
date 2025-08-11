@@ -989,9 +989,18 @@ elif page == "CBBI Score":
         
         col1, col2 = st.columns(2)
         with col1:
+            # Handle both decimal (0-1) and percentage (0-100) formats for display
+            if score is not None:
+                if score > 1:
+                    display_score = f"{int(score)}"  # Already in percentage format
+                else:
+                    display_score = f"{int(score*100)}"  # Convert decimal to percentage
+            else:
+                display_score = "N/A"
+            
             st.metric(
                 label="Current CBBI Score", 
-                value=f"{int(score*100)}" if score else "N/A"
+                value=display_score
             )
             st.markdown(f"<h3 style='color:{color}'>{status}</h3>", unsafe_allow_html=True)
         
@@ -1028,7 +1037,14 @@ elif page == "CBBI Score":
                     else:
                         dates.append(item['date'])
                 
-                scores = [item['score'] * 100 for item in historical_scores]
+                # Handle both decimal (0-1) and percentage (0-100) formats for scores
+                scores = []
+                for item in historical_scores:
+                    score_value = item['score']
+                    if score_value > 1:
+                        scores.append(score_value)  # Already in percentage format
+                    else:
+                        scores.append(score_value * 100)  # Convert decimal to percentage
                 
                 # Sort by date (oldest first for the chart)
                 dates_scores = sorted(zip(dates, scores), key=lambda x: x[0])
