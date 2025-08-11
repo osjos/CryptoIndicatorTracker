@@ -110,16 +110,16 @@ def get_indicator_status(name, value, thresholds):
             return "Normal Interest", "green"
     
     elif name == "CBBI Score":
-        # For CBBI Score, interpret based on score value
-        # CBBI Score is 0-1 scale in database but 0-100 in UI
-        value_display = int(value*100) if value else 0
+        # For CBBI Score - handle both decimal (0-1) and percentage (0-100) formats
+        high_threshold = thresholds[0]
+        low_threshold = thresholds[1]
         
-        if value > 0.8:
-            return f"Near Top ({value_display}/100)", "red"
-        elif value > 0.6:
-            return f"Caution ({value_display}/100)", "yellow"
+        if value > high_threshold:  # Above 80% or 0.8
+            return "Extreme Greed", "red"
+        elif value < low_threshold:  # Below 50% or 0.5
+            return "Fear", "green"
         else:
-            return f"Accumulation ({value_display}/100)", "green"
+            return "Greed", "yellow"
     
     elif name == "Halving Cycle":
         # For Halving Cycle, interpret based on days after halving
@@ -223,13 +223,28 @@ if page == "Dashboard Overview":
         st.subheader("CBBI Score")
         if 'cbbi' in data and data['cbbi'] is not None:
             score = data['cbbi'].get('score')
-            # We'll keep the threshold check at decimal level since that's how the data is stored
-            status, color = get_indicator_status("CBBI Score", score, [0.8, 0.5])
+            # Adjust thresholds based on whether score is in decimal (0-1) or percentage (0-100) format
+            if score is not None and score > 1:
+                # Score is in percentage format (0-100)
+                status, color = get_indicator_status("CBBI Score", score, [80, 50])
+            else:
+                # Score is in decimal format (0-1)
+                status, color = get_indicator_status("CBBI Score", score, [0.8, 0.5])
             
-            # Display as whole number (0-100 scale)
+            # Display as whole number - check if score is already in percentage format
+            if score is not None:
+                # If score is greater than 1, it's already in percentage format (0-100)
+                if score > 1:
+                    display_score = f"{int(score)}"
+                else:
+                    # If score is 0-1, convert to percentage
+                    display_score = f"{int(score*100)}"
+            else:
+                display_score = "N/A"
+            
             st.metric(
                 label="Current Score", 
-                value=f"{int(score*100)}" if score else "N/A"
+                value=display_score
             )
             st.markdown(f"<h3 style='color:{color}'>{status}</h3>", unsafe_allow_html=True)
         else:
