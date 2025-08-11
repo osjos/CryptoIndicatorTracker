@@ -299,7 +299,13 @@ if page == "Dashboard Overview":
         # CBBI Score
         if 'cbbi' in data and data['cbbi'] is not None:
             score = data['cbbi'].get('score')
-            status, _ = get_indicator_status("CBBI Score", score, [0.8, 0.5])
+            # Adjust thresholds based on whether score is in decimal (0-1) or percentage (0-100) format
+            if score is not None and score > 1:
+                # Score is in percentage format (0-100)
+                status, _ = get_indicator_status("CBBI Score", score, [80, 50])
+            else:
+                # Score is in decimal format (0-1)
+                status, _ = get_indicator_status("CBBI Score", score, [0.8, 0.5])
             indicators.append(status)
         
         # Halving Cycle
@@ -985,7 +991,13 @@ elif page == "CBBI Score":
     if 'cbbi' in data and data['cbbi'] is not None:
         # Display current score
         score = data['cbbi'].get('score')
-        status, color = get_indicator_status("CBBI Score", score, [0.8, 0.5])
+        # Adjust thresholds based on whether score is in decimal (0-1) or percentage (0-100) format
+        if score is not None and score > 1:
+            # Score is in percentage format (0-100)
+            status, color = get_indicator_status("CBBI Score", score, [80, 50])
+        else:
+            # Score is in decimal format (0-1)
+            status, color = get_indicator_status("CBBI Score", score, [0.8, 0.5])
         
         col1, col2 = st.columns(2)
         with col1:
@@ -1329,16 +1341,32 @@ elif page == "CBBI Score":
         
         # Analysis
         st.subheader("Current Analysis")
-        current_score_display = int(score*100) if score else 0
-        
-        if score > 0.8:
-            st.error(f"⚠️ CBBI Score of {current_score_display} indicates increasing market optimism. Historically, scores above 80 have been seen near market tops.")
-        elif score > 0.6:
-            st.warning(f"🔍 CBBI Score of {current_score_display} shows increasing market optimism. Consider taking partial profits if the trend continues.")
-        elif score < 0.3:
-            st.success(f"✅ CBBI Score of {current_score_display} suggests we're in mid-cycle. Historically, scores below 30 are favorable for long-term entry.")
+        # Handle both decimal (0-1) and percentage (0-100) formats for display
+        if score is not None:
+            if score > 1:
+                current_score_display = int(score)  # Already in percentage format
+                # Use percentage thresholds
+                if score > 80:
+                    st.error(f"⚠️ CBBI Score of {current_score_display} indicates increasing market optimism. Historically, scores above 80 have been seen near market tops.")
+                elif score > 60:
+                    st.warning(f"🔍 CBBI Score of {current_score_display} shows increasing market optimism. Consider taking partial profits if the trend continues.")
+                elif score < 30:
+                    st.success(f"✅ CBBI Score of {current_score_display} suggests we're in mid-cycle. Historically, scores below 30 are favorable for long-term entry.")
+                else:
+                    st.info(f"🔄 CBBI Score of {current_score_display} is in the neutral range. The market is neither in fear nor greed territory.")
+            else:
+                current_score_display = int(score*100)  # Convert decimal to percentage
+                # Use decimal thresholds
+                if score > 0.8:
+                    st.error(f"⚠️ CBBI Score of {current_score_display} indicates increasing market optimism. Historically, scores above 80 have been seen near market tops.")
+                elif score > 0.6:
+                    st.warning(f"🔍 CBBI Score of {current_score_display} shows increasing market optimism. Consider taking partial profits if the trend continues.")
+                elif score < 0.3:
+                    st.success(f"✅ CBBI Score of {current_score_display} suggests we're in mid-cycle. Historically, scores below 30 are favorable for long-term entry.")
+                else:
+                    st.info(f"🔄 CBBI Score of {current_score_display} is in the neutral range. The market is neither in fear nor greed territory.")
         else:
-            st.info(f"🔄 CBBI Score of {current_score_display} is in the neutral range. The market is neither in fear nor greed territory.")
+            current_score_display = 0
     else:
         st.warning("CBBI data not available. Please update the data.")
         
