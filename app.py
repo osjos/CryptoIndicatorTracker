@@ -15,8 +15,11 @@ from utils.pi_cycle import get_pi_cycle_data
 from utils.app_store import get_coinbase_ranking
 from utils.cbbi import get_cbbi_data
 from utils.halving_tracker import get_halving_data
-from data_manager import update_database, get_latest_data, get_historical_coinbase_rankings, get_historical_cbbi_scores
+from data_manager import update_database, get_latest_data, get_historical_coinbase_rankings, get_historical_cbbi_scores, ensure_cbbi_and_rank_seed
 from scheduler import start_scheduler, stop_scheduler
+
+# Initialize and seed normalized tables if needed
+ensure_cbbi_and_rank_seed()
 
 # Start the background scheduler to keep data updated
 start_scheduler()
