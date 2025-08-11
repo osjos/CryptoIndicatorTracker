@@ -79,6 +79,24 @@ def init_database():
         )
         ''')
 
+        # Create normalized table for CBBI daily data
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS cbbi_daily (
+            date TEXT PRIMARY KEY,
+            cbbi REAL NOT NULL
+        )
+        ''')
+
+        # Create normalized table for Coinbase rankings
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS coinbase_rank (
+            date TEXT PRIMARY KEY,
+            rank INTEGER NOT NULL,
+            store TEXT DEFAULT 'apple_us',
+            chart TEXT DEFAULT 'top_free_overall'
+        )
+        ''')
+
         conn.commit()
         conn.close()
         logger.info("Database initialized successfully")
